@@ -38,7 +38,8 @@ def _interval_bar(low: float | None, high: float | None, lift: float | None) -> 
 
 
 def render(verdict: dict, checks: list[dict] | None, experiment: int,
-           environment: str, dashboard: str = "http://localhost:8000") -> str:
+           environment: str, dashboard: str = "http://localhost:8000",
+           project: int = 1) -> str:
     state = verdict.get("state", "unreachable")
     colour = STATE_COLOURS.get(state, "#8b949e")
     arms = verdict.get("arms") or {}
@@ -58,7 +59,7 @@ def render(verdict: dict, checks: list[dict] | None, experiment: int,
         for c in (checks or [])
     )
     reason_html = "".join(f"<li>{html.escape(r)}</li>" for r in reasons)
-    link = f"{dashboard}/project/1/environment/{environment}/experiments/{experiment}"
+    link = f"{dashboard}/project/{project}/environment/{environment}/experiments/{experiment}"
 
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">

@@ -82,5 +82,13 @@ runs:
           echo '```'
           cat verdict.txt 2>/dev/null || echo "gate did not produce output"
           echo '```'
+          if [ -s audit.txt ]; then
+            echo "<details><summary>Wiring audit</summary>"
+            echo
+            echo '```'
+            cat audit.txt
+            echo '```'
+            echo "</details>"
+          fi
         } > comment.md
         gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md || true

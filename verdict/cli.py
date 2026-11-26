@@ -201,9 +201,10 @@ def cmd_report(args, cfg: RuleConfig) -> int:
                                 events_url=args.events_url)
     if verdict is None:
         verdict = decide(client.results(args.env, args.experiment), cfg)
+    project = args.project or ((getattr(args, "_raw", {}) or {}).get("experiment") or {}).get("project") or 1
     html_text = render(verdict.to_dict(), [vars(c) for c in checks] if checks else None,
                        args.experiment, args.env,
-                       args.dashboard or "http://localhost:8000")
+                       args.dashboard or "http://localhost:8000", project=int(project))
     out = Path(args.out or f"verdict-{args.experiment}.html")
     out.write_text(html_text)
     print(f"report written: {out.resolve()}")
@@ -252,6 +253,7 @@ def main(argv: list[str] | None = None) -> int:
     sp_report.add_argument("--events-url")
     sp_report.add_argument("--out", help="output html path")
     sp_report.add_argument("--dashboard", help="Flagsmith dashboard URL for the deep link")
+    sp_report.add_argument("--project", type=int, help="Flagsmith project id for the deep link (default 1)")
     sp_report.set_defaults(func=cmd_report)
 
     args = p.parse_args(argv)
