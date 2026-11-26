@@ -118,6 +118,32 @@ def chi_square_p(observed: list[int], weights: list[float]) -> float | None:
     return max(0.0, min(1.0, survival))
 
 
+def weights_from_experiment(exp: dict) -> dict[str, float]:
+    """The configured traffic split, read from the experiment's rollout.
+
+    Flagsmith reports traffic that falls through to the feature's own value as
+    the variant key ``control``; only the variations are listed as allocations.
+    """
+    rollout = exp.get("experiment_rollout") or {}
+    feature = exp.get("feature")
+    if not isinstance(feature, dict):
+        feature = {}
+    options = {o.get("id"): o for o in (feature.get("multivariate_options") or [])}
+    shares: dict[str, float] = {}
+    allocated = 0.0
+    for allocation in rollout.get("multivariate_feature_state_values") or []:
+        option = options.get(allocation.get("multivariate_feature_option")) or {}
+        key = option.get("key")
+        pct = float(allocation.get("percentage_allocation") or 0)
+        allocated += pct
+        if key:
+            shares[key] = pct
+    remainder = 100.0 - allocated
+    if 0.0 <= remainder <= 100.0:
+        shares["control"] = remainder
+    return shares
+
+
 def _primary_metric(payload: dict) -> dict:
     metrics = payload.get("metrics") or []
     if not metrics:

@@ -6,7 +6,8 @@ import math
 import unittest
 from pathlib import Path
 
-from verdict.rules import (State, RuleConfig, chi_square_p, decide)
+from verdict.rules import (State, RuleConfig, chi_square_p, decide,
+                           weights_from_experiment)
 
 FIX = Path(__file__).parent / "fixtures"
 
@@ -109,6 +110,31 @@ class StateTest(unittest.TestCase):
     def test_no_payload_is_unreachable(self):
         v = decide({"results": {"as_of": None, "payload": None}})
         self.assertEqual(v.state, State.UNREACHABLE)
+
+    def test_chance_to_win_without_an_interval_is_not_a_win(self):
+        p = payload({"control": (1200, 120), "red": (1200, 180)},
+                    {"red": {"lift": 0.5, "ci_low": -0.1, "ci_high": 1.1,
+                             "chance_to_win": 0.99}})
+        v = decide(p)
+        self.assertEqual(v.state, State.INCONCLUSIVE)
+
+    def test_weights_come_from_the_rollout_with_control_as_the_remainder(self):
+        exp = {
+            "feature": {"multivariate_options": [
+                {"id": 11, "key": "red"}, {"id": 12, "key": "green"}]},
+            "experiment_rollout": {"multivariate_feature_state_values": [
+                {"multivariate_feature_option": 11, "percentage_allocation": 30},
+                {"multivariate_feature_option": 12, "percentage_allocation": 20}]},
+        }
+        self.assertEqual(weights_from_experiment(exp), {"red": 30.0, "green": 20.0, "control": 50.0})
+
+    def test_weights_skip_an_unkeyed_variation(self):
+        exp = {
+            "feature": {"multivariate_options": [{"id": 11, "key": None}]},
+            "experiment_rollout": {"multivariate_feature_state_values": [
+                {"multivariate_feature_option": 11, "percentage_allocation": 50}]},
+        }
+        self.assertEqual(weights_from_experiment(exp), {"control": 50.0})
 
     def test_exit_codes_are_distinct_per_class(self):
         pairs = {

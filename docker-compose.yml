@@ -1,0 +1,86 @@
+# Verdict demo stack: self-hosted Flagsmith + a sample shop instrumented with
+# the real Flagsmith Python SDK. Start it with `make demo` or:
+#
+#   docker compose up -d
+#   python demo/seed.py
+#   docker compose --profile app up -d --build demo
+#
+# Flagsmith UI: http://localhost:8000  (admin@demo.local / demo-password)
+# Demo shop:    http://localhost:8080
+
+name: verdict
+
+x-flagsmith-env: &flagsmith-env
+  DATABASE_URL: postgresql://postgres:password@postgres:5432/flagsmith
+  USE_POSTGRES_FOR_ANALYTICS: "true"
+  ENVIRONMENT: production
+  DJANGO_ALLOWED_HOSTS: "*"
+  FLAGSMITH_DOMAIN: localhost:8000
+  DJANGO_SECRET_KEY: verdict-demo-only-not-a-secret
+  WAREHOUSE_CREDENTIALS_SECRET: verdict-demo-only-not-a-secret
+  TASK_RUN_METHOD: TASK_PROCESSOR
+  EXPERIMENTATION_ENABLED: "true"
+
+volumes:
+  pgdata:
+
+services:
+  postgres:
+    image: postgres:15.5-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: flagsmith
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d flagsmith -U postgres"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+      start_period: 20s
+
+  migrate-db:
+    image: docker.flagsmith.com/flagsmith/flagsmith:latest
+    command: ["migrate"]
+    environment:
+      <<: *flagsmith-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  flagsmith:
+    image: docker.flagsmith.com/flagsmith/flagsmith:latest
+    restart: unless-stopped
+    command: ["serve"]
+    environment:
+      <<: *flagsmith-env
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate-db:
+        condition: service_completed_successfully
+
+  flagsmith-task-processor:
+    image: docker.flagsmith.com/flagsmith/flagsmith:latest
+    restart: unless-stopped
+    command: ["run-task-processor"]
+    environment:
+      <<: *flagsmith-env
+    depends_on:
+      migrate-db:
+        condition: service_completed_successfully
+
+  demo:
+    profiles: ["app"]
+    build: ./demo
+    restart: unless-stopped
+    env_file:
+      - ./demo/demo.env
+    environment:
+      FLAGSMITH_API_URL: http://flagsmith:8000/api/v1
+      FLAGSMITH_EVENTS_URL: http://flagsmith:8000/api/
+    ports:
+      - "${DEMO_PORT:-8080}:8080"
+    depends_on:
+      - flagsmith

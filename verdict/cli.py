@@ -7,13 +7,14 @@ import os
 import sys
 import time
 import tomllib
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 
 from .checks import run_audit, summarise
 from .client import ApiError, Flagsmith
 from .report import render
-from .rules import EXIT_CODES, RuleConfig, decide
+from .rules import EXIT_CODES, RuleConfig, decide, weights_from_experiment
 
 
 def load_config(path: Path | None) -> tuple[dict, RuleConfig]:
@@ -76,10 +77,19 @@ def cmd_audit(args, cfg: RuleConfig) -> int:
     return 2 if any_block else 0
 
 
+def decide_with_client(client: Flagsmith, env: str, experiment: int, cfg: RuleConfig):
+    """Decide against the latest stored snapshot, deriving the split if needed."""
+    if not cfg.weights:
+        try:
+            cfg = replace(cfg, weights=weights_from_experiment(client.experiment(env, experiment)))
+        except ApiError:
+            pass
+    return decide(client.results(env, experiment), cfg)
+
+
 def cmd_gate(args, cfg: RuleConfig) -> int:
     client = make_client(args, getattr(args, "_raw", None))
-    payload = client.results(args.env, args.experiment)
-    v = decide(payload, cfg)
+    v = decide_with_client(client, args.env, args.experiment, cfg)
     if args.json:
         print(json.dumps(v.to_dict(), indent=2))
     else:
@@ -89,8 +99,7 @@ def cmd_gate(args, cfg: RuleConfig) -> int:
 
 def cmd_ship(args, cfg: RuleConfig) -> int:
     client = make_client(args, getattr(args, "_raw", None))
-    payload = client.results(args.env, args.experiment)
-    v = decide(payload, cfg)
+    v = decide_with_client(client, args.env, args.experiment, cfg)
     if v.state.value != "winner":
         print_verdict(v)
         print("REFUSING TO SHIP: the verdict is not WINNER")

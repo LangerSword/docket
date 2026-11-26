@@ -1,11 +1,11 @@
 """Audit checks: the silent failures the Flagsmith docs themselves name."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 
 from .client import ApiError, Flagsmith
-from .rules import RuleConfig, Verdict, decide
+from .rules import RuleConfig, Verdict, decide, weights_from_experiment
 
 
 @dataclass
@@ -24,6 +24,30 @@ def _age_minutes(iso: str | None) -> float | None:
     except ValueError:
         return None
     return (datetime.now(timezone.utc) - dt).total_seconds() / 60.0
+
+
+def _metric_events(client: Flagsmith, env_key: str, exp: dict) -> dict[int, str]:
+    """Map metric id -> the event name the app must send, per experiment metric."""
+    ids = []
+    for row in exp.get("metrics") or []:
+        metric = row.get("metric")
+        mid = metric.get("id") if isinstance(metric, dict) else metric
+        if isinstance(mid, int):
+            ids.append(mid)
+    if not ids:
+        return {}
+    try:
+        rows = client._call("GET", f"/environments/{env_key}/experiment-metrics/?page_size=100")
+    except ApiError:
+        return {}
+    items = rows.get("results", rows) if isinstance(rows, dict) else rows
+    result: dict[int, str] = {}
+    for m in items:
+        mid = m.get("id")
+        event = (m.get("definition") or {}).get("event")
+        if isinstance(mid, int) and mid in ids and event:
+            result[mid] = event
+    return result
 
 
 def run_audit(client: Flagsmith, env_key: str, experiment_id: int,
@@ -68,78 +92,85 @@ def run_audit(client: Flagsmith, env_key: str, experiment_id: int,
     else:
         checks.append(Check("rollout", "pass", f"rollout at {rollout.get('rollout_percentage')}%"))
 
-    # 3. variant keys + control
-    feature_id = exp.get("feature")
-    if isinstance(feature_id, dict):
-        feature_id = feature_id.get("id")
-    project_id = None
-    try:
-        feature = None
-        # experiment payload embeds feature; fall back to project lookup via env
-        if isinstance(exp.get("feature"), dict):
-            feature = exp["feature"]
-        if feature is None and isinstance(exp.get("feature_id"), int):
-            feature = None
-    except ApiError:
-        feature = None
-
-    if isinstance(feature, dict):
+    # 3. variants: every variation keyed, a usable control value, sane split
+    feature = exp.get("feature") if isinstance(exp.get("feature"), dict) else None
+    if feature:
         options = feature.get("multivariate_options") or []
         keyless = [o for o in options if not o.get("key")]
         if keyless:
             checks.append(Check(
                 "variant keys", "block",
                 f"{len(keyless)} variation(s) have no key: {[o.get('string_value') for o in keyless]}",
-                "every variation needs a key or it records no exposures (flagsmith feature variant add ... --key ...)"))
+                "set a key on every variation, or it records no exposures"))
         elif options:
             checks.append(Check("variant keys", "pass", f"{len(options)} variation(s), all keyed"))
-        control = [o for o in options if (o.get("key") or o.get("string_value")) == cfg.control_key]
-        checks.append(Check("control variant", "pass" if control else "warn",
-                            "control variant present" if control else
-                            f"no variant keyed {cfg.control_key!r}; the stats engine will return no inference",
-                            "name the baseline variant exactly 'control'" if not control else ""))
 
-    # 4. metric event present in the warehouse
-    metric_event = None
-    metrics = exp.get("metrics") or []
-    if metrics:
-        metric_event = (metrics[0].get("metric") or {}).get("definition", {}).get("event") if isinstance(
-            metrics[0].get("metric"), dict) else None
-    if not metric_event:
-        # experiment detail in this build exposes metrics as ids; use the metrics list
-        try:
-            rows = client._call("GET", f"/environments/{env_key}/experiment-metrics/")
-            for m in rows.get("results", []):
-                if m.get("id") == (metrics[0].get("metric") if metrics else None):
-                    metric_event = (m.get("definition") or {}).get("event")
-                    break
-        except ApiError:
-            pass
-    if metric_event and conn:
+        control_value = (rollout.get("feature_state_value") or {}).get("value") \
+            if isinstance(rollout.get("feature_state_value"), dict) else feature.get("initial_value")
+        if control_value not in (None, ""):
+            checks.append(Check("control variant", "pass",
+                                f"control is the feature's own value {control_value!r}"))
+        else:
+            checks.append(Check("control variant", "warn",
+                                "the feature has no default value; control traffic cannot be attributed",
+                                "give the feature an initial value (conventionally 'control')"))
+
+        allocated = sum(float(a.get("percentage_allocation") or 0)
+                        for a in rollout.get("multivariate_feature_state_values") or [])
+        if options and allocated >= 100:
+            checks.append(Check("allocation", "block",
+                                f"variations claim {allocated:g}% of traffic; control gets none",
+                                "leave part of the rollout to the control value"))
+        else:
+            checks.append(Check("allocation", "pass",
+                                f"variations {allocated:g}%, control {100 - allocated:g}%"))
+
+    # 4. every metric event has actually arrived in the warehouse
+    events = _metric_events(client, env_key, exp)
+    if events and conn:
         try:
             names = client.warehouse_events(env_key, conn["id"])
         except ApiError:
             names = []
         if names:
-            if metric_event in names:
-                checks.append(Check("metric event", "pass", f"event {metric_event!r} has arrived in the warehouse"))
-            else:
-                checks.append(Check("metric event", "block",
-                                    f"metric event {metric_event!r} has never arrived; known events: {names[:6]}",
+            missing = [e for e in events.values() if e not in names]
+            if missing:
+                checks.append(Check("metric events", "block",
+                                    f"never arrived: {missing}; known: {names[:6]}",
                                     "fix the event name (case-sensitive) or the call site that should send it"))
+            else:
+                checks.append(Check("metric events", "pass",
+                                    f"{', '.join(sorted(set(events.values())))} arrived in the warehouse"))
         else:
-            checks.append(Check("metric event", "warn", "warehouse has no events yet", "send one event"))
+            checks.append(Check("metric events", "warn", "warehouse has no events yet", "send one event"))
+    elif events:
+        checks.append(Check("metric events", "warn", "no warehouse connection; cannot verify event names",
+                            "connect a warehouse"))
 
     # 5. self-hosted events URL
     if events_url is not None:
-        ok = events_url.rstrip("/").endswith("/api")
-        checks.append(Check("events url", "pass" if ok else "block",
-                            f"events url {events_url!r} {'targets' if ok else 'does not target'} your instance",
-                            "" if ok else "self-hosted SDKs must send events to <api>/api/ (default is Flagsmith Cloud)"))
+        from urllib.parse import urlparse
+        parsed = urlparse(events_url)
+        host = (parsed.netloc or "").lower()
+        cloud = host.endswith("flagsmith.com") or host.endswith("flagsmith.io")
+        path_ok = parsed.path.rstrip("/").endswith("/api")
+        ok = path_ok and not cloud
+        if cloud:
+            detail = f"events url {events_url!r} points at Flagsmith Cloud; self-hosted events never arrive"
+            fix = "point the SDK's events URL at <your instance>/api/"
+        elif not path_ok:
+            detail = f"events url {events_url!r} does not end in /api/"
+            fix = "self-hosted SDKs append v1/events, so the events URL must end in /api/"
+        else:
+            detail = f"events url {events_url!r} targets your instance"
+            fix = ""
+        checks.append(Check("events url", "pass" if ok else "block", detail, fix))
 
     # 6. live data checks
     verdict = None
     try:
+        if not cfg.weights:
+            cfg = replace(cfg, weights=weights_from_experiment(exp))
         payload = client.results(env_key, experiment_id)
         verdict = decide(payload, cfg)
         age = _age_minutes((payload.get("results") or {}).get("as_of"))

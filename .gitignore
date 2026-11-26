@@ -7,3 +7,8 @@ verdict-*.json
 verdict-*.md
 verdict-*.html
 demo/verdict.toml
+demo/verdict.*.toml
+demo/demo.env
+demo/seed.json
+demo/decision-*.json
+demo/decision-*.md
