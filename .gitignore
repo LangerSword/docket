@@ -12,3 +12,5 @@ demo/demo.env
 demo/seed.json
 demo/decision-*.json
 demo/decision-*.md
+demo/decision.json
+demo/decision.md

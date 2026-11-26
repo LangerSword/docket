@@ -75,6 +75,10 @@ cd verdict
 make demo          # or: python3 demo/demo.py
 ```
 
+If port 8080 is already taken, run `DEMO_PORT=8088 make demo`; the shop moves,
+Flagsmith stays on 8000. The first run pulls the Flagsmith image and builds the
+shop, so give it a few minutes.
+
 `make demo` is the short version of the demo script. It:
 
 1. starts self-hosted Flagsmith (official image, Postgres, task processor) on
