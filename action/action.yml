@@ -1,0 +1,86 @@
+name: Verdict
+description: Audit a Flagsmith experiment's wiring and gate the release on its statistics.
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  base:
+    description: Flagsmith base URL
+    required: false
+    default: http://localhost:8000
+  token:
+    description: Flagsmith API token (store it in a secret)
+    required: true
+  env:
+    description: Environment key
+    required: true
+  experiment:
+    description: Experiment id
+    required: true
+  events-url:
+    description: URL the app sends SDK events to (for self-hosted, ends in /api/)
+    required: false
+    default: ""
+  config:
+    description: Path to verdict.toml
+    required: false
+    default: verdict.toml
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install verdict
+      shell: bash
+      run: pip install --quiet "${{ github.action_path }}/.."
+
+    - name: Audit wiring
+      id: audit
+      shell: bash
+      env:
+        VERDICT_TOKEN: ${{ inputs.token }}
+        VERDICT_BASE: ${{ inputs.base }}
+        EVENTS_URL: ${{ inputs.events-url }}
+      run: |
+        args=(--env "${{ inputs.env }}" --experiment "${{ inputs.experiment }}")
+        if [ -n "$EVENTS_URL" ]; then args+=(--events-url "$EVENTS_URL"); fi
+        set +e
+        verdict --config "${{ inputs.config }}" audit "${args[@]}" | tee audit.txt
+        code=${PIPESTATUS[0]}
+        echo "code=$code" >> "$GITHUB_OUTPUT"
+
+    - name: Gate the release
+      shell: bash
+      env:
+        VERDICT_TOKEN: ${{ inputs.token }}
+        VERDICT_BASE: ${{ inputs.base }}
+        VERDICT_ACTOR: ${{ github.actor }}
+      run: |
+        set +e
+        verdict --config "${{ inputs.config }}" gate \
+          --env "${{ inputs.env }}" --experiment "${{ inputs.experiment }}" --json \
+          > verdict.json
+        code=$?
+        verdict --config "${{ inputs.config }}" gate \
+          --env "${{ inputs.env }}" --experiment "${{ inputs.experiment }}" > verdict.txt || true
+        cat verdict.txt
+        exit $code
+
+    - name: Comment on the pull request
+      if: always() && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        {
+          echo "### Verdict"
+          echo '```'
+          cat verdict.txt 2>/dev/null || echo "gate did not produce output"
+          echo '```'
+        } > comment.md
+        gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md || true
