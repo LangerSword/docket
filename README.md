@@ -254,7 +254,7 @@ verdict/
   cli.py      audit | gate | ship | report
 demo/         sample shop, seeder, traffic driver, one-command orchestrator
 action/       composite GitHub Action
-tests/        24 engine, audit and fixture tests
+tests/        26 engine, audit and fixture tests
 ```
 
 The engine is pure and testable without network: typed errors map to exit codes,

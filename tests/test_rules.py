@@ -95,6 +95,30 @@ class StateTest(unittest.TestCase):
         v = decide(p, cfg)
         self.assertEqual(v.state, State.GUARDRAIL)
 
+    def test_guardrail_without_inference_is_not_a_winner(self):
+        guard_metric = {
+            "variants": {"control": {"n": 1200, "sum": 20.0, "sum_squares": 20.0},
+                         "red": {"n": 1200, "sum": 22.0, "sum_squares": 22.0}},
+            "inference": {},
+            "metric_id": 2,
+            "conversions_timeseries": None,
+        }
+        p = payload({"control": (1200, 120), "red": (1200, 180)},
+                    {"red": {"lift": 0.5, "ci_low": 0.2, "ci_high": 0.8, "chance_to_win": 0.99}},
+                    extra_metrics=[guard_metric])
+        cfg = RuleConfig(guardrails=[{"metric_id": 2, "name": "refund", "expected_direction": "not_increase"}])
+        v = decide(p, cfg)
+        self.assertEqual(v.state, State.INCONCLUSIVE)
+        self.assertIn("no inference", " ".join(v.reasons))
+
+    def test_missing_guardrail_metric_is_not_a_winner(self):
+        p = payload({"control": (1200, 120), "red": (1200, 180)},
+                    {"red": {"lift": 0.5, "ci_low": 0.2, "ci_high": 0.8, "chance_to_win": 0.99}})
+        cfg = RuleConfig(guardrails=[{"metric_id": 99, "name": "refund", "expected_direction": "not_increase"}])
+        v = decide(p, cfg)
+        self.assertEqual(v.state, State.INCONCLUSIVE)
+        self.assertIn("not in the results payload", " ".join(v.reasons))
+
     def test_missing_control_key_is_inconclusive(self):
         p = payload({"a": (200, 20), "b": (200, 30)},
                     {"b": {"lift": 0.5, "ci_low": 0.2, "ci_high": 0.8, "chance_to_win": 0.99}})

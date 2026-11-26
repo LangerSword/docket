@@ -257,31 +257,41 @@ def decide(payload: dict, cfg: RuleConfig | None = None) -> Verdict:
         f"chance to win {best_chance:.1%}"
     ]
 
-    # 5. Guardrails: a winner that regressed something else is a refusal.
+    # 5. Guardrails: a winner that regressed something else is a refusal. A
+    # guardrail with no inference yet is not a pass: it is unmeasured.
     for g in cfg.guardrails:
         gid = g.get("metric_id")
-        for m in body.get("metrics") or []:
-            if m.get("metric_id") != gid:
-                continue
-            ginf = (m.get("inference") or {}).get(best_key)
-            if not ginf:
-                continue
-            direction = g.get("expected_direction", "not_increase")
-            tol = float(g.get("tolerance", 0.0))
-            low, high = ginf.get("ci_low"), ginf.get("ci_high")
-            if low is None or high is None:
-                continue
-            violated = (
-                (direction == "not_increase" and low - tol > 0) or
-                (direction == "not_decrease" and high + tol < 0)
-            )
-            if violated:
-                verdict.state = State.GUARDRAIL
-                verdict.reasons.append(
-                    f"guardrail metric {g.get('name', gid)} moved the wrong way: "
-                    f"[{low:+.1%}, {high:+.1%}] vs tolerance {tol:.1%}")
-                verdict.exit_code = EXIT_CODES[State.GUARDRAIL]
-                return verdict
+        rows = [m for m in body.get("metrics") or [] if m.get("metric_id") == gid]
+        if not rows:
+            verdict.state = State.INCONCLUSIVE
+            verdict.reasons = [f"guardrail metric {g.get('name', gid)} is not in the results payload; do not ship unmeasured"]
+            verdict.exit_code = EXIT_CODES[State.INCONCLUSIVE]
+            return verdict
+        ginf = (rows[0].get("inference") or {}).get(best_key)
+        if not ginf:
+            verdict.state = State.INCONCLUSIVE
+            verdict.reasons = [f"guardrail metric {g.get('name', gid)} has no inference yet; keep collecting"]
+            verdict.exit_code = EXIT_CODES[State.INCONCLUSIVE]
+            return verdict
+        direction = g.get("expected_direction", "not_increase")
+        tol = float(g.get("tolerance", 0.0))
+        low, high = ginf.get("ci_low"), ginf.get("ci_high")
+        if low is None or high is None:
+            verdict.state = State.INCONCLUSIVE
+            verdict.reasons = [f"guardrail metric {g.get('name', gid)} has no interval yet; keep collecting"]
+            verdict.exit_code = EXIT_CODES[State.INCONCLUSIVE]
+            return verdict
+        violated = (
+            (direction == "not_increase" and low - tol > 0) or
+            (direction == "not_decrease" and high + tol < 0)
+        )
+        if violated:
+            verdict.state = State.GUARDRAIL
+            verdict.reasons.append(
+                f"guardrail metric {g.get('name', gid)} moved the wrong way: "
+                f"[{low:+.1%}, {high:+.1%}] vs tolerance {tol:.1%}")
+            verdict.exit_code = EXIT_CODES[State.GUARDRAIL]
+            return verdict
 
     # 6. Verdict.
     if best_chance <= 0.05 or (not interval_clears(best) and
