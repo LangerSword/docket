@@ -127,7 +127,8 @@ def cmd_ship(args, cfg: RuleConfig) -> int:
         return 3
     state = client.feature_state(args.env, fid)
     client.complete_experiment(args.env, args.experiment)
-    client.set_winner(args.env, state["id"], winner, match["id"])
+    value = match.get("string_value") or winner
+    client.set_winner(args.env, state["id"], winner, match["id"], value)
 
     record = {
         "tool": "verdict",
@@ -137,7 +138,7 @@ def cmd_ship(args, cfg: RuleConfig) -> int:
         "as_of": v.as_of,
         "verdict": v.to_dict(),
         "mutation": {"feature": fid, "feature_state": state["id"],
-                     "winner": winner, "allocation": 100},
+                     "winner": winner, "value": value, "allocation": 100},
         "actor": os.environ.get("VERDICT_ACTOR", os.environ.get("GITHUB_ACTOR", "local")),
     }
     out = Path(args.record or f"verdict-{args.experiment}-{int(time.time())}.json")

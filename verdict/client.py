@@ -105,7 +105,7 @@ class Flagsmith:
         return self._call("POST", f"/environments/{env_key}/experiments/{experiment_id}/complete/")
 
     def set_winner(self, env_key: str, state_id: int, winner: str,
-                   winner_option_id: int) -> dict:
+                   winner_option_id: int, winner_value: str | None = None) -> dict:
         state = self._call("GET", f"/environments/{env_key}/featurestates/{state_id}/")
         allocations = []
         for mv in state.get("multivariate_feature_state_values") or []:
@@ -116,7 +116,7 @@ class Flagsmith:
             })
         body = {
             "enabled": True,
-            "feature_state_value": winner,
+            "feature_state_value": winner_value if winner_value is not None else winner,
             "multivariate_feature_state_values": allocations,
         }
         return self._call("PUT", f"/environments/{env_key}/featurestates/{state_id}/", body)
