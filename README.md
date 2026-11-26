@@ -65,6 +65,16 @@ Invariants: never `winner` below the sample floor; never `winner` on a sample
 ratio mismatch; `losing` and `winner` are mutually exclusive; every state carries
 the numbers that produced it.
 
+## Demo video
+
+A two-minute walkthrough lives in the [demo-v1 release](https://github.com/LangerSword/verdict/releases/download/demo-v1/verdict-demo.mp4)
+(1080p MP4, 6.2 MB): the audit catches three silent wiring failures, a guardrail
+run refuses a 99% winner, the checkout experiment is gated and shipped, and the
+Flagsmith side shows the feature state move to 100%.
+
+The shoppers are scripted by `demo/load.py`; every experiment, exposure,
+conversion, statistic and flag mutation is real self-hosted Flagsmith.
+
 ## Run the whole thing in one command
 
 Requirements: Docker with Compose, Python 3.11+.
