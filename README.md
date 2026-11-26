@@ -68,7 +68,7 @@ the numbers that produced it.
 ## Demo video
 
 A two-minute walkthrough lives in the [demo-v1 release](https://github.com/LangerSword/verdict/releases/download/demo-v1/verdict-demo.mp4)
-(1080p MP4, 6.2 MB): the audit catches three silent wiring failures, a guardrail
+(1080p MP4, 6.3 MB): the audit catches three silent wiring failures, a guardrail
 run refuses a 99% winner, the checkout experiment is gated and shipped, and the
 Flagsmith side shows the feature state move to 100%.
 
@@ -205,6 +205,8 @@ guardrails = [
 Guardrail tolerance is **relative lift**, matching the interval Flagsmith
 returns: `tolerance = 0.02` allows a 2% relative increase before blocking. A
 `not_decrease` guardrail blocks when the interval's upper bound is below zero.
+The first metric on the experiment is the primary; guardrails are declared by
+metric id. An unmeasured guardrail is never treated as a pass.
 
 ### Results are snapshots, not a live query
 
