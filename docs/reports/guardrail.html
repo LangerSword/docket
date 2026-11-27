@@ -3,18 +3,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Docket · experiment 17</title>
 <style>
-  @font-face { font-family:"Bricolage"; src:url("../assets/fonts/bricolage-grotesque.woff2") format("woff2"); font-weight:400 800; }
-  @font-face { font-family:"Instrument"; src:url("../assets/fonts/instrument-sans.woff2") format("woff2"); font-weight:400 700; }
+  @font-face { font-family:"Anton"; src:url("../assets/fonts/anton.woff2") format("woff2"); font-weight:400; }
+  @font-face { font-family:"Newsreader"; src:url("../assets/fonts/newsreader.woff2") format("woff2"); font-weight:400 600; }
   @font-face { font-family:"DocketMono"; src:url("../assets/fonts/jetbrains-mono-latin.woff2") format("woff2"); font-weight:400 500; }
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
   body { margin:0; background:#efe7d6; color:#151714;
-         font:15px/1.65 "Instrument","Helvetica Neue",Arial,sans-serif; }
+         font:16px/1.65 "Newsreader",Georgia,serif; }
   main { max-width:880px; margin:0 auto; padding:56px 28px 96px; }
   .kicker { font:400 9px/1 "DocketMono",monospace; letter-spacing:.16em; text-transform:uppercase; color:#5d6159; margin:0 0 10px; }
-  h1 { font:600 18px/1.2 "Bricolage","Helvetica Neue",sans-serif; letter-spacing:-.02em;
+  h1 { font:400 20px/1.2 "Anton",Impact,sans-serif; letter-spacing:-.02em;
         margin:0 0 8px; }
-  .state { font:650 58px/.92 "Bricolage","Helvetica Neue",sans-serif;
+  .state { font:400 64px/.86 "Anton",Impact,sans-serif;
             letter-spacing:-.05em; color:#b33127; margin:0 0 28px; }
   .card { border-top:1px solid #c9c0ad; padding:20px 0 22px; margin:0; }
   .card h2 { font:400 9px/1 "DocketMono",monospace; letter-spacing:.14em; text-transform:uppercase; color:#5d6159;
@@ -73,12 +73,12 @@
   <section class="card">
     <h2>Audit</h2>
     <table><thead><tr><th></th><th>check</th><th>detail</th></tr></thead>
-    <tbody><tr class='pass'><td>PASS</td><td>warehouse</td><td>postgres connection is connected</td></tr><tr class='pass'><td>PASS</td><td>experiment</td><td>experiment is running</td></tr><tr class='pass'><td>PASS</td><td>rollout</td><td>rollout at 100.0%</td></tr><tr class='pass'><td>PASS</td><td>variant keys</td><td>1 variation(s), all keyed</td></tr><tr class='pass'><td>PASS</td><td>control variant</td><td>control is the feature&#x27;s own value &#x27;control&#x27;</td></tr><tr class='pass'><td>PASS</td><td>allocation</td><td>variations 50%, control 50%</td></tr><tr class='pass'><td>PASS</td><td>metric events</td><td>purchase_completed, refund_requested arrived in the warehouse</td></tr><tr class='pass'><td>PASS</td><td>results</td><td>results as of 20 min ago</td></tr><tr class='pass'><td>PASS</td><td>traffic both arms</td><td>exposures per arm: {&#x27;red&#x27;: 832, &#x27;control&#x27;: 768}</td></tr><tr class='pass'><td>PASS</td><td>conversions</td><td>conversions recorded on every arm with enough traffic</td></tr><tr class='pass'><td>PASS</td><td>sample ratio</td><td>chi-square p=0.11 against configured split</td></tr></tbody></table>
+    <tbody><tr class='pass'><td>PASS</td><td>warehouse</td><td>postgres connection is connected</td></tr><tr class='pass'><td>PASS</td><td>experiment</td><td>experiment is running</td></tr><tr class='pass'><td>PASS</td><td>rollout</td><td>rollout at 100.0%</td></tr><tr class='pass'><td>PASS</td><td>variant keys</td><td>1 variation(s), all keyed</td></tr><tr class='pass'><td>PASS</td><td>control variant</td><td>control is the feature&#x27;s own value &#x27;control&#x27;</td></tr><tr class='pass'><td>PASS</td><td>allocation</td><td>variations 50%, control 50%</td></tr><tr class='pass'><td>PASS</td><td>metric events</td><td>purchase_completed, refund_requested arrived in the warehouse</td></tr><tr class='warn'><td>WARN</td><td>results</td><td>results are 40 min old (refresh is throttled to 1/5 min)</td></tr><tr class='pass'><td>PASS</td><td>traffic both arms</td><td>exposures per arm: {&#x27;red&#x27;: 832, &#x27;control&#x27;: 768}</td></tr><tr class='pass'><td>PASS</td><td>conversions</td><td>conversions recorded on every arm with enough traffic</td></tr><tr class='pass'><td>PASS</td><td>sample ratio</td><td>chi-square p=0.11 against configured split</td></tr></tbody></table>
   </section>
 
   <footer>
     <a href="http://localhost:8000/project/1/environment/9MNW9c7eiUCbKiD7tdsAzX/experiments/17">open in Flagsmith</a> ·
-    generated 2026-11-27T21:01:02+00:00 ·
+    generated 2026-11-27T21:21:07+00:00 ·
     docket is a snapshot, not a live query
   </footer>
 </main></body></html>
