@@ -19,6 +19,8 @@ VERDICT: INCONCLUSIVE  (exit 1)
 Built for **Toggle Wars, Track 03** (build on open-source Flagsmith), November 2026.
 MIT.
 
+[Product site](https://langersword.github.io/verdict/) · [Demo video](https://github.com/LangerSword/verdict/releases/download/demo-v1/verdict-demo.mp4) · [Roadmap](ROADMAP.md)
+
 ## The problem
 
 A Flagsmith experiment page gives you a number and leaves the release decision to
