@@ -45,6 +45,7 @@ GitHub Action.
 | `verdict gate` | Reads the experiment's own results and returns one of seven states with the numbers that produced it. Exit `0` is the only value that allows a release. |
 | `verdict ship --confirm` | Only runs on `WINNER`: completes the experiment, writes the winning variation to 100%, and emits a JSON + Markdown decision record with the statistics and the exact flag mutation. Refuses a completed experiment. Add `--sign` to attest the record. |
 | `verdict verify` | Checks a signed decision record against `$VERDICT_SIGNING_KEY`; any edit to a lift, interval, experiment id or flag mutation invalidates it. |
+| `verdict ledger list\|verify` | Appends decisions to a JSONL ledger and verifies every signed record offline. |
 | `verdict report` | Writes one standalone HTML file you can attach to a PR: state, interval, arms, audit table, deep link into Flagsmith. |
 
 ### The seven states
@@ -252,8 +253,10 @@ signature itself:
 
 ```bash
 export VERDICT_SIGNING_KEY="$(openssl rand -hex 32)"
-verdict ship --confirm --sign --record demo/decision.json
+verdict ship --confirm --sign --record demo/decision.json --ledger demo/ledger.jsonl
 verdict verify demo/decision.json
+verdict ledger list demo/ledger.jsonl
+verdict ledger verify demo/ledger.jsonl
 # DECISION RECORD: VALID
 #   valid hmac-sha256 signature, key 4f9c2a1b8e77
 #   state winner (exit 0), experiment 10
@@ -275,11 +278,12 @@ verdict/
   rules.py    pure decision engine: seven states, SRM, guardrails, intervals
   checks.py   audit catalog, each check returns pass/warn/block with a fix
   attest.py   HMAC-SHA256 signing and verification of decision records
+  ledger.py   append-only JSONL ledger; offline verification of every decision
   report.py   human, JSON and standalone HTML output
-  cli.py      audit | gate | ship | verify | report
+  cli.py      audit | gate | ship | verify | ledger | report
 demo/         sample shop, seeder, traffic driver, one-command orchestrator
 action/       composite GitHub Action
-tests/        34 engine, audit, attestation and fixture tests
+tests/        41 engine, audit, attestation, ledger and fixture tests
 ```
 
 The engine is pure and testable without network: typed errors map to exit codes,
@@ -295,9 +299,9 @@ python3 -m pytest tests -q
 Verdict is the gate today. The gap underneath it is bigger: feature flags made
 releases continuous, but nobody owns the **release decision** — evidence,
 policy, mutation and an audit trail in one place. The roadmap is a release
-decision layer: signed decision records (shipped), then a post-ship guard and
-automatic rollback, policy-as-code, a release ledger, an OpenFeature adapter so
-the same engine works beyond Flagsmith, and an agent-native CLI/MCP.
+decision layer: signed decision records and a local release ledger (shipped), then a post-ship
+guard and automatic rollback, policy-as-code, a remote ledger, an OpenFeature
+adapter so the same engine works beyond Flagsmith, and an agent-native CLI/MCP.
 
 [Read the roadmap](ROADMAP.md).
 

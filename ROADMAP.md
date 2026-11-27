@@ -28,6 +28,8 @@ decision layer. That is the gap Verdict is built to fill.
   100%, and writes a JSON + Markdown decision record. `--confirm` is required.
 - `verdict verify` — HMAC-SHA256 attestation; any edit to the record invalidates
   it.
+- `verdict ledger list|verify` — append decisions to a JSONL ledger and verify
+  every signed record offline.
 - A one-command self-hosted demo, a real Python SDK sample app, a GitHub Action,
   and tests that run without network.
 
@@ -57,13 +59,13 @@ Technical shape:
 
 Success is measured in prevented bad releases, not in flags flipped.
 
-## Phase 2 — Release ledger
+## Phase 2 — Release ledger (local ledger shipped)
 
 A decision record is only evidence if it is durable and queryable.
 
 - append-only ledger of signed decision records, keyed by experiment, feature,
-  environment, commit and deploy;
-- `verdict ledger list|show|verify` with JSON output for CI and auditors;
+  environment, commit and deploy (local JSONL shipped; remote next);
+- `verdict ledger list|verify` with JSON output for CI and auditors;
 - attach the record to the pull request and the deploy automatically;
 - export to an object store or a warehouse; verify offline with the signing key.
 

@@ -14,6 +14,7 @@ from pathlib import Path
 from .attest import sign_record, verify_record
 from .checks import run_audit, summarise
 from .client import ApiError, Flagsmith
+from .ledger import append as ledger_append, read as ledger_read, verify_all as ledger_verify_all
 from .report import render
 from .rules import EXIT_CODES, RuleConfig, decide, weights_from_experiment
 
@@ -167,8 +168,48 @@ def cmd_ship(args, cfg: RuleConfig) -> int:
         + f"- mutation: feature {fid}, state {state['id']}, allocation 100/0\n"
         + signature_line)
     signed = f", signed {signature['key_id']}" if signature else ""
+    if args.ledger:
+        try:
+            ledger_append(Path(args.ledger), record)
+        except OSError as e:
+            print(f"WARNING: ship succeeded but the ledger append failed: {e}", file=sys.stderr)
     print(f"SHIPPED {winner}: experiment ended, weight 100/0, record {out} and {md}{signed}")
     return 0
+
+
+def cmd_ledger(args, cfg: RuleConfig) -> int:
+    path = Path(args.path)
+    try:
+        records = ledger_read(path)
+    except (OSError, ValueError) as e:
+        print(f"cannot read ledger: {e}", file=sys.stderr)
+        return 3
+    if args.action == "list":
+        if not records:
+            print(f"ledger {path} is empty")
+            return 0
+        for record in records:
+            verdict = record.get("verdict") or {}
+            mutation = record.get("mutation") or {}
+            signature = record.get("signature") or {}
+            print(f"{record.get('generated_at', '?')}  experiment {record.get('experiment')}  "
+                  f"{verdict.get('state')}  -> {mutation.get('winner')}  "
+                  f"{signature.get('key_id', 'unsigned')}")
+        return 0
+    key = os.environ.get("VERDICT_SIGNING_KEY", "")
+    if not key:
+        print("set VERDICT_SIGNING_KEY to verify the ledger", file=sys.stderr)
+        return 3
+    results = ledger_verify_all(records, key)
+    bad = 0
+    for index, (ok, message) in enumerate(results, start=1):
+        record = records[index - 1]
+        status = "VALID" if ok else "INVALID"
+        print(f"{index:>3}. {status:7} experiment {record.get('experiment')}: {message}")
+        if not ok:
+            bad += 1
+    print(f"{len(records)} record(s), {bad} invalid")
+    return 0 if bad == 0 else 2
 
 
 def cmd_verify(args, cfg: RuleConfig) -> int:
@@ -297,11 +338,21 @@ def main(argv: list[str] | None = None) -> int:
     sp_ship.add_argument("--record", help="path for the decision record")
     sp_ship.add_argument("--sign", action="store_true",
                          help="sign the decision record with $VERDICT_SIGNING_KEY")
+    sp_ship.add_argument("--ledger", help="append the record to an audit ledger (JSONL)")
     sp_ship.set_defaults(func=cmd_ship)
 
     sp_verify = sub.add_parser("verify", help="verify a signed decision record")
     sp_verify.add_argument("record", type=Path, help="path to the decision record JSON")
     sp_verify.set_defaults(func=cmd_verify)
+
+    sp_ledger = sub.add_parser("ledger", help="inspect or verify the release decision ledger")
+    ledger_sub = sp_ledger.add_subparsers(dest="action", required=True)
+    sp_ledger_list = ledger_sub.add_parser("list", help="list decisions in a ledger")
+    sp_ledger_list.add_argument("path", type=Path)
+    sp_ledger_list.set_defaults(func=cmd_ledger)
+    sp_ledger_verify = ledger_sub.add_parser("verify", help="verify every signed record")
+    sp_ledger_verify.add_argument("path", type=Path)
+    sp_ledger_verify.set_defaults(func=cmd_ledger)
 
     sp_report = sub.add_parser("report", help="write a standalone HTML decision report")
     add_common(sp_report)
