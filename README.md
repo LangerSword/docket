@@ -1,10 +1,11 @@
 # Docket
 
-**Release gates for Flagsmith experiments.** Audit the wiring, refuse to ship on
-noise, and roll the winner out with a decision record that says why.
+**Release decisions for Flagsmith experiments.** One docket over every
+experiment in a release: audit the wiring, refuse the whole thing when one case
+fails, and sign the decision.
 
-Flagsmith tells you a win probability. Docket tells you whether you are
-*allowed to ship*, and refuses with the numbers when you are not.
+Flagsmith tells you a win probability. Docket tells you whether the release is
+*allowed to proceed*, and refuses with the numbers when it is not.
 
 ```
 $ docket gate
