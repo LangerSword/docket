@@ -1,40 +1,45 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Docket · experiment 6</title>
+<title>Docket · experiment 18</title>
 <style>
-  :root { color-scheme: dark; }
+  @font-face { font-family:"Bricolage"; src:url("../assets/fonts/bricolage-grotesque.woff2") format("woff2"); font-weight:400 800; }
+  @font-face { font-family:"Instrument"; src:url("../assets/fonts/instrument-sans.woff2") format("woff2"); font-weight:400 700; }
+  @font-face { font-family:"DocketMono"; src:url("../assets/fonts/jetbrains-mono-latin.woff2") format("woff2"); font-weight:400 500; }
+  :root { color-scheme: light; }
   * { box-sizing: border-box; }
-  body { margin:0; background:#0d1117; color:#e6edf3;
-         font:15px/1.6 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif; }
-  main { max-width:820px; margin:0 auto; padding:56px 24px 96px; }
-  h1 { font-size:15px; letter-spacing:.14em; text-transform:uppercase; color:#8b949e;
-        font-weight:600; margin:0 0 8px; }
-  .state { font-size:44px; font-weight:700; letter-spacing:-.02em; color:#8b949e; margin:0 0 28px; }
-  .card { border:1px solid #21262d; border-radius:10px; padding:20px 22px; margin:0 0 18px;
-           background:#0f141b; }
-  .card h2 { font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#8b949e;
-              margin:0 0 14px; font-weight:600; }
+  body { margin:0; background:#efe7d6; color:#151714;
+         font:15px/1.65 "Instrument","Helvetica Neue",Arial,sans-serif; }
+  main { max-width:880px; margin:0 auto; padding:56px 28px 96px; }
+  .kicker { font:400 9px/1 "DocketMono",monospace; letter-spacing:.16em; text-transform:uppercase; color:#5d6159; margin:0 0 10px; }
+  h1 { font:600 18px/1.2 "Bricolage","Helvetica Neue",sans-serif; letter-spacing:-.02em;
+        margin:0 0 8px; }
+  .state { font:650 58px/.92 "Bricolage","Helvetica Neue",sans-serif;
+            letter-spacing:-.05em; color:#5d6159; margin:0 0 28px; }
+  .card { border-top:1px solid #c9c0ad; padding:20px 0 22px; margin:0; }
+  .card h2 { font:400 9px/1 "DocketMono",monospace; letter-spacing:.14em; text-transform:uppercase; color:#5d6159;
+              margin:0 0 14px; }
   table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
-  th,td { text-align:left; padding:7px 6px; border-bottom:1px solid #1c2128; }
-  th { color:#8b949e; font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
-  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; }
-  .bar { position:relative; height:34px; margin:10px 0 4px; background:#161b22;
-          border-radius:6px; overflow:hidden; }
-  .zero { position:absolute; top:0; bottom:0; width:1px; background:#e6edf3; opacity:.55; }
-  .range { position:absolute; top:11px; height:12px; background:#8b949e; opacity:.35; border-radius:3px; }
-  .point { position:absolute; top:4px; width:3px; height:26px; background:#8b949e; border-radius:2px; }
-  .scale { display:flex; justify-content:space-between; color:#8b949e; font-size:12px; }
+  th,td { text-align:left; padding:8px 8px 8px 0; border-bottom:1px solid #d6cbb6; }
+  th { color:#5d6159; font-weight:400; font-size:9px; font-family:"DocketMono",monospace; text-transform:uppercase; letter-spacing:.1em; }
+  code { font-family:"DocketMono","SFMono-Regular",Menlo,monospace; font-size:12px; }
+  .bar { position:relative; height:28px; margin:10px 0 4px; background:#d7ccb7;
+          overflow:hidden; }
+  .zero { position:absolute; top:0; bottom:0; width:1px; background:#151714; opacity:.55; }
+  .range { position:absolute; top:8px; height:12px; background:#5d6159; opacity:.45; }
+  .point { position:absolute; top:2px; width:2px; height:24px; background:#5d6159; }
+  .scale { display:flex; justify-content:space-between; color:#5d6159; font:400 9px/1.5 "DocketMono",monospace; }
   ul { margin:0; padding-left:18px; }
   li { margin:4px 0; }
-  .pass td:first-child { color:#2fbf71; }
-  .warn td:first-child { color:#e3b341; }
-  .block td:first-child { color:#e5534b; }
-  .muted { color:#8b949e; }
-  footer { margin-top:32px; color:#8b949e; font-size:12px; }
-  a { color:#58a6ff; text-decoration:none; }
+  .pass td:first-child { color:#2f6347; }
+  .warn td:first-child { color:#8a6a1f; }
+  .block td:first-child { color:#b33127; }
+  .muted { color:#5d6159; }
+  footer { margin-top:28px; padding-top:14px; border-top:1px solid #c9c0ad; color:#5d6159; font:400 9px/1.7 "DocketMono",monospace; }
+  a { color:#151714; text-decoration:none; border-bottom:1px solid #b33127; }
 </style></head><body><main>
-  <h1>Docket · experiment 6</h1>
+  <p class="kicker">Docket / decision report</p>
+  <h1>Experiment 18</h1>
   <p class="state">unreachable</p>
 
   <section class="card">
@@ -61,12 +66,12 @@
   <section class="card">
     <h2>Audit</h2>
     <table><thead><tr><th></th><th>check</th><th>detail</th></tr></thead>
-    <tbody><tr class='pass'><td>PASS</td><td>warehouse</td><td>postgres connection is connected</td></tr><tr class='pass'><td>PASS</td><td>experiment</td><td>experiment is running</td></tr><tr class='pass'><td>PASS</td><td>rollout</td><td>rollout at 100.0%</td></tr><tr class='block'><td>BLOCK</td><td>variant keys</td><td>1 variation(s) have no key: [&#x27;red&#x27;]</td></tr><tr class='pass'><td>PASS</td><td>control variant</td><td>control is the feature&#x27;s own value &#x27;control&#x27;</td></tr><tr class='pass'><td>PASS</td><td>allocation</td><td>variations 50%, control 50%</td></tr><tr class='block'><td>BLOCK</td><td>metric events</td><td>never arrived: [&#x27;purchase_complete&#x27;]; known: [&#x27;purchase_completed&#x27;, &#x27;$flag_exposure&#x27;, &#x27;refund_requested&#x27;]</td></tr><tr class='block'><td>BLOCK</td><td>events url</td><td>events url &#x27;https://events.api.flagsmith.com/api&#x27; points at Flagsmith Cloud; self-hosted events never arrive</td></tr><tr class='warn'><td>WARN</td><td>results</td><td>no results computed yet</td></tr></tbody></table>
+    <tbody><tr class='pass'><td>PASS</td><td>warehouse</td><td>postgres connection is connected</td></tr><tr class='pass'><td>PASS</td><td>experiment</td><td>experiment is running</td></tr><tr class='pass'><td>PASS</td><td>rollout</td><td>rollout at 100.0%</td></tr><tr class='block'><td>BLOCK</td><td>variant keys</td><td>1 variation(s) have no key: [&#x27;red&#x27;]</td></tr><tr class='pass'><td>PASS</td><td>control variant</td><td>control is the feature&#x27;s own value &#x27;control&#x27;</td></tr><tr class='pass'><td>PASS</td><td>allocation</td><td>variations 50%, control 50%</td></tr><tr class='block'><td>BLOCK</td><td>metric events</td><td>never arrived: [&#x27;purchase_complete&#x27;]; known: [&#x27;$flag_exposure&#x27;, &#x27;purchase_completed&#x27;, &#x27;refund_requested&#x27;]</td></tr><tr class='block'><td>BLOCK</td><td>events url</td><td>events url &#x27;https://events.api.flagsmith.com/api&#x27; points at Flagsmith Cloud; self-hosted events never arrive</td></tr><tr class='warn'><td>WARN</td><td>results</td><td>no results computed yet</td></tr></tbody></table>
   </section>
 
   <footer>
-    <a href="http://localhost:8000/project/1/environment/9MNW9c7eiUCbKiD7tdsAzX/experiments/6">open in Flagsmith</a> ·
-    generated 2026-11-27T14:08:24+00:00 ·
+    <a href="http://localhost:8000/project/1/environment/9MNW9c7eiUCbKiD7tdsAzX/experiments/18">open in Flagsmith</a> ·
+    generated 2026-11-27T21:01:28+00:00 ·
     docket is a snapshot, not a live query
   </footer>
 </main></body></html>

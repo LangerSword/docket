@@ -4,304 +4,370 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>Docket - release decisions for Flagsmith experiments</title>
-  <meta name="description" content="One release, every experiment, one decision. Docket audits each case, refuses the whole release when one fails, and signs the record.">
+  <title>Docket - release decisions for self-hosted Flagsmith</title>
+  <meta name="description" content="One release, every experiment, one decision. Docket audits every case, refuses the release when one fails, and signs the record.">
   <link rel="canonical" href="https://langersword.github.io/docket/">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Docket - release decisions for Flagsmith experiments">
-  <meta property="og:description" content="One release, every experiment, one decision. Refuse the release when one case fails. Sign the record.">
+  <meta property="og:title" content="Docket - one case can refuse the release">
+  <meta property="og:description" content="Release decisions for self-hosted Flagsmith. Audit every case, refuse the release when one fails, sign the record.">
   <meta property="og:image" content="https://langersword.github.io/docket/media/og.png">
   <meta property="og:url" content="https://langersword.github.io/docket/">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#0b0d0f">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/site.css">
+  <style>:root{--signal:#b33127;--paper:#efe7d6;--ink:#151714}:focus-visible{outline:2px solid var(--signal);outline-offset:3px}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}</style>
+  <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
-<header class="nav">
-  <div class="wrap nav-inner">
-    <a class="brand" href="./" aria-label="Docket home">docket<span>.</span></a>
-    <nav class="nav-links" id="nav-links" aria-label="Primary">
-      <a href="#docket">Docket</a>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="./" aria-label="Docket home" data-slot="brand">docket<span>.</span></a>
+    <nav class="site-nav" id="site-nav" aria-label="Primary">
+      <a href="#refusal">Refusal</a>
+      <a href="#cases">Cases</a>
       <a href="#record">Record</a>
-      <a href="#evidence">Evidence</a>
       <a href="#install">Install</a>
-      <a href="#roadmap">Roadmap</a>
+      <a href="#limits">Limits</a>
     </nav>
-    <div class="nav-right">
-      <a class="nav-github" href="https://github.com/LangerSword/docket">GitHub</a>
-      <button class="menu" id="menu" aria-label="Open menu" aria-expanded="false" aria-controls="nav-links"><span></span></button>
+    <div class="header-actions">
+      <a class="header-link" href="https://github.com/LangerSword/docket">GitHub <span aria-hidden="true">↗</span></a>
+      <button class="menu-button" id="menu-button" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav"><span></span><span></span></button>
     </div>
   </div>
 </header>
 
 <main id="main">
 
-  <section class="hero">
+  <section class="hero" aria-labelledby="hero-title">
     <div class="wrap hero-grid">
       <div class="hero-copy">
-        <p class="eyebrow">Toggle Wars, Track 03</p>
-        <h1>Every release leaves a docket.</h1>
-        <p class="lede">Docket reads every experiment in a release, refuses the whole thing when one case fails, and signs the decision.</p>
-        <div class="actions">
-          <a class="btn btn-primary" href="#docket">See the refused docket</a>
-          <a class="btn btn-ghost" href="https://github.com/LangerSword/docket">Read the code</a>
+        <p class="hero-kicker">Toggle Wars / Track 03</p>
+        <h1 id="hero-title" data-slot="headline">One case refuses the release.</h1>
+        <p class="hero-lede" data-slot="thesis">Docket reads every experiment in a release. When one case fails, the whole release is refused and the decision is signed.</p>
+        <div class="hero-actions" data-slot="action">
+          <a class="button button-solid" href="#refusal">Inspect the refusal</a>
+          <a class="button button-line" href="#record">Read the record</a>
         </div>
       </div>
 
-      <article class="docket-sheet" aria-label="A refused release docket with two experiment cases">
-        <div class="docket-head">
-          <div>
-            <p class="docket-kicker">Release docket</p>
-            <p class="docket-title">demo-release</p>
+      <div class="hero-art" id="hero-art">
+        <article class="paper" data-artifact="release-docket" data-slot="inventory" aria-label="Release docket checkout-nov-2026, refused">
+          <header class="paper-head">
+            <div>
+              <p class="paper-kicker">Release docket</p>
+              <p class="paper-release">checkout-nov-2026</p>
+            </div>
+            <div class="paper-mark">
+              <p class="paper-date">27 Nov 2026<br><span>Development</span></p>
+              <span class="stamp">Refused</span>
+            </div>
+          </header>
+
+          <div class="case-tabs" role="tablist" aria-label="Release cases">
+            <button class="case-tab" role="tab" id="tab-16" aria-controls="case-16" aria-selected="true" tabindex="0"><span>16</span> Checkout CTA</button>
+            <button class="case-tab" role="tab" id="tab-17" aria-controls="case-17" aria-selected="false" tabindex="-1"><span>17</span> Express checkout</button>
           </div>
-          <div class="docket-id"><strong>27 Nov 2026</strong>Development</div>
+
+          <div class="case-panels">
+            <section class="case-panel" role="tabpanel" id="case-16" aria-labelledby="tab-16">
+              <div class="case-head">
+                <p class="case-number">Case 16</p>
+                <h2 class="case-name">Checkout CTA</h2>
+                <p class="case-state is-winner">Winner</p>
+              </div>
+              <div class="lift-line">
+                <p class="lift">+127.2%</p>
+                <p class="lift-label">lift vs control</p>
+              </div>
+              <div class="range" style="--start:35.5%;--end:91.7%;--point:63.6%">
+                <span class="range-zero" aria-hidden="true"></span>
+                <span class="range-fill" aria-hidden="true"></span>
+                <span class="range-point" aria-hidden="true"></span>
+              </div>
+              <p class="range-caption">95% interval +71.0% to +183.4%</p>
+              <dl class="paper-rows">
+                <div><dt>Chance to win</dt><dd>100.0%</dd></div>
+                <div><dt>Shoppers</dt><dd>1,600</dd></div>
+                <div><dt>Audit</dt><dd>11 checks pass</dd></div>
+                <div><dt>Case result</dt><dd class="is-winner">Clears</dd></div>
+              </dl>
+              <div class="paper-links"><a href="reports/winner.html">Open case report <span aria-hidden="true">↗</span></a></div>
+            </section>
+
+            <section class="case-panel" role="tabpanel" id="case-17" aria-labelledby="tab-17" hidden>
+              <div class="case-head">
+                <p class="case-number">Case 17</p>
+                <h2 class="case-name">Express checkout</h2>
+                <p class="case-state is-guardrail">Guardrail</p>
+              </div>
+              <div class="lift-line">
+                <p class="lift">+151.2%</p>
+                <p class="lift-label">primary lift vs control</p>
+              </div>
+              <div class="range" style="--start:34.0%;--end:92.0%;--point:63.0%">
+                <span class="range-zero" aria-hidden="true"></span>
+                <span class="range-fill is-guardrail" aria-hidden="true"></span>
+                <span class="range-point is-guardrail" aria-hidden="true"></span>
+              </div>
+              <p class="range-caption">Primary 95% interval +81.7% to +220.7%</p>
+              <dl class="paper-rows">
+                <div><dt>Refunds</dt><dd class="is-guardrail">+205.4% to +1,189.0%</dd></div>
+                <div><dt>Tolerance</dt><dd>0.0%</dd></div>
+                <div><dt>Audit</dt><dd>11 checks pass</dd></div>
+                <div><dt>Case result</dt><dd class="is-guardrail">Refuses</dd></div>
+              </dl>
+              <div class="paper-links"><a href="reports/guardrail.html">Open case report <span aria-hidden="true">↗</span></a></div>
+            </section>
+          </div>
+
+          <footer class="paper-foot">
+            <div><strong>Release blocked</strong><span>1 of 2 cases cleared / exit 2</span></div>
+            <div class="paper-signature"><em>not recorded</em><span>refused before mutation</span></div>
+          </footer>
+        </article>
+
+        <p class="art-note">Recorded 27 Nov 2026, 20:41 UTC against self-hosted Flagsmith. Demo traffic is scripted; exposures, statistics and flag mutations are real.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="statement" id="refusal" aria-labelledby="refusal-title">
+    <div class="wrap statement-grid">
+      <h2 id="refusal-title">One case can refuse the release.</h2>
+      <p>Checkout CTA clears. Express checkout wins on purchases and still refuses the release, because refunds regress. Nothing is written.</p>
+    </div>
+    <div class="ticker" aria-label="Release ledger">
+      <div class="ticker-track">
+        <div class="ticker-set">
+          <span>Case 16 / Checkout CTA / Winner / +127.2%</span>
+          <span>Case 17 / Express checkout / Guardrail / Refunds +1,189.0%</span>
+          <span>Release / Blocked / Exit 2</span>
+          <span>Fixture 18 / Broken wiring / 3 blocks</span>
+          <span>Record / Cleared / 1db834ae297b</span>
         </div>
-        <div class="stamp">Refused</div>
-        <div class="case-list">
-          <div class="case-row">
-            <span class="case-id">10</span>
-            <span class="case-name">Checkout CTA</span>
-            <span class="case-state winner">Winner</span>
-            <span class="case-nums">+138.6% / CI [76.7%, 200.5%] / 100% win probability</span>
-          </div>
-          <div class="case-row">
-            <span class="case-id">11</span>
-            <span class="case-name">Express checkout</span>
-            <span class="case-state guardrail">Guardrail</span>
-            <span class="case-nums">+114.9% primary / refunds [156.8%, 665.9%] / exit 2</span>
+        <div class="ticker-set" aria-hidden="true">
+          <span>Case 16 / Checkout CTA / Winner / +127.2%</span>
+          <span>Case 17 / Express checkout / Guardrail / Refunds +1,189.0%</span>
+          <span>Release / Blocked / Exit 2</span>
+          <span>Fixture 18 / Broken wiring / 3 blocks</span>
+          <span>Record / Cleared / 1db834ae297b</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cases" id="cases" aria-labelledby="cases-title">
+    <div class="wrap">
+      <div class="section-intro reveal">
+        <h2 id="cases-title">The release is one docket.</h2>
+        <p>Each experiment is a case with its own evidence. The release is the aggregate, and one case is enough to stop it.</p>
+      </div>
+
+      <article class="case-block case-a reveal">
+        <div class="case-copy">
+          <p class="case-label">Case 16 / Checkout CTA</p>
+          <h3>A winner that clears.</h3>
+          <p>The primary metric is strong enough to call. Docket still checks the wiring before it trusts the result: 11 audit checks pass, both arms carry identities, and the split holds.</p>
+          <p class="case-fact">+127.2% lift / interval +71.0% to +183.4% / 1,600 shoppers</p>
+          <a class="text-link" href="reports/winner.html">Open the generated report <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="case-art">
+          <div class="mini-sheet">
+            <div class="mini-head"><span>Case 16</span><span class="is-winner">Winner</span></div>
+            <p class="mini-lift">+127.2%</p>
+            <div class="mini-range"><span></span></div>
+            <div class="mini-foot"><span>11 checks pass</span><span>exit 0</span></div>
           </div>
         </div>
-        <div class="docket-foot">
-          <div class="aggregate"><strong>Release blocked</strong>1 of 2 cases cleared / exit 2</div>
-          <div class="signature"><em>not recorded</em>refused before mutation</div>
+      </article>
+
+      <article class="case-block case-b reveal">
+        <div class="wrap case-b-inner">
+          <div class="case-b-copy">
+            <p class="case-label">Case 17 / Express checkout</p>
+            <h3>A winner that still refuses.</h3>
+            <p>The primary metric wins. Refunds move the wrong way, past the tolerance. Docket refuses the case, and the release writes no flag state.</p>
+            <a class="text-link" href="reports/guardrail.html">Open the generated report <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="case-b-numbers">
+            <p class="case-b-big">+151.2%</p>
+            <p class="case-b-label">primary lift</p>
+            <div class="guardrail-box">
+              <span>Refund guardrail</span>
+              <strong>+205.4% to +1,189.0%</strong>
+              <small>tolerance 0.0% / exit 2</small>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="case-block case-c reveal">
+        <div class="case-c-copy">
+          <p class="case-label">Fixture 18 / Broken wiring</p>
+          <h3>A decision that never gets a number.</h3>
+          <p>The audit stops the experiment before statistics matter. The fixture has a variant with no key, a misspelled event, and a cloud events URL on a self-hosted instance.</p>
+          <a class="text-link" href="reports/broken.html">Open the generated report <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="audit-output" aria-label="Three audit blocks">
+          <div class="audit-head"><span>Audit / experiment 18</span><span class="is-guardrail">3 blocks</span></div>
+          <div class="audit-row"><b>BLOCK</b><span>variant keys</span><em>1 variation has no key: red</em></div>
+          <div class="audit-row"><b>BLOCK</b><span>metric events</span><em>purchase_complete never arrived</em></div>
+          <div class="audit-row"><b>BLOCK</b><span>events url</span><em>points at Flagsmith Cloud</em></div>
+          <div class="audit-pass"><span>5 checks pass</span><span>no decision</span></div>
         </div>
       </article>
     </div>
   </section>
 
-  <section class="facts" aria-label="Docket facts">
-    <div class="wrap facts-grid">
-      <div class="fact"><span>Unit of release</span><strong>The release, not the experiment</strong></div>
-      <div class="fact"><span>Refusal</span><strong>One failed case blocks every mutation</strong></div>
-      <div class="fact"><span>Record</span><strong>Signed and append-only</strong></div>
-    </div>
-  </section>
-
-  <section class="section" id="docket">
-    <div class="wrap">
-      <div class="ledger-head reveal">
-        <div>
-          <h2>The whole release, one decision.</h2>
-          <p>A release is not one experiment. Docket audits every case, then refuses the release if any case is broken, losing or guardrailed.</p>
-        </div>
-      </div>
-      <div class="ledger-table reveal" role="table" aria-label="Release docket cases">
-        <div class="ledger-row head" role="row">
-          <span class="num">Case</span><span class="name">Experiment</span><span class="meta">Evidence</span><span class="meta">Result</span><span class="verdict">State</span>
-        </div>
-        <div class="ledger-row" role="row">
-          <span class="num">10</span>
-          <span class="name">Checkout CTA</span>
-          <span class="meta">+138.6%<br>CI [76.7, 200.5]</span>
-          <span class="meta">1,600 shoppers<br>12 audit checks pass</span>
-          <span class="verdict winner">Cleared</span>
-        </div>
-        <div class="ledger-row" role="row">
-          <span class="num">11</span>
-          <span class="name">Express checkout</span>
-          <span class="meta">+114.9% primary<br>refunds [156.8, 665.9]</span>
-          <span class="meta">1,600 shoppers<br>guardrail regressed</span>
-          <span class="verdict guardrail">Refused</span>
-        </div>
-        <div class="ledger-row total" role="row">
-          <span class="num">Total</span>
-          <span class="name">demo-release</span>
-          <span class="meta">2 experiments</span>
-          <span class="meta">1 cleared / 1 refused</span>
-          <span class="verdict blocked">Blocked / exit 2</span>
-        </div>
-      </div>
-      <p class="ledger-note">A refusal is not a warning. Docket pre-validates every mutation before writing any flag state, so a blocked release changes nothing.</p>
-    </div>
-  </section>
-
-  <section class="section" id="record">
+  <section class="record" id="record" aria-labelledby="record-title">
     <div class="wrap record-grid">
-      <div class="reveal">
-        <h2>A release is a record, not a log line.</h2>
-        <p>Only a cleared docket mutates flags. Every ship produces one signed JSON record and one append-only ledger entry, with every experiment and its mutation inside.</p>
-        <p class="ledger-note">HMAC-SHA256. Edit a lift, an interval, an experiment id or a flag mutation and verification fails.</p>
-      </div>
-      <div class="reveal">
-        <div class="record-slip">
-          <span class="record-stamp">Cleared</span>
-          <p class="docket-kicker">Decision record</p>
-          <p class="record-title">checkout-nov-2026</p>
-          <div class="record-lines">
-            <div class="record-line"><span>aggregate</span><b>cleared / exit 0</b></div>
-            <div class="record-line"><span>experiments</span><b>1</b></div>
-            <div class="record-line"><span>winner</span><b>red / 100%</b></div>
-            <div class="record-line"><span>signature</span><b>hmac-sha256 / 1db834ae297b</b></div>
-            <div class="record-line"><span>ledger</span><b>1 record / 0 invalid</b></div>
-          </div>
-        </div>
-        <div class="code-block" style="margin-top:18px">
-          <div class="code-head"><span>release.json</span><button class="copy" type="button">Copy</button></div>
-          <pre>{
-  <span class="dim">"release"</span>: "checkout-nov-2026",
-  <span class="dim">"aggregate"</span>: { "state": "cleared", "exit_code": 0 },
-  <span class="dim">"experiments"</span>: [
-    { "id": 10, "verdict": { "state": "winner", "winner": "red" } }
+      <div class="record-copy reveal">
+        <h2 id="record-title">A release is a record, not a log line.</h2>
+        <p>Only a cleared docket mutates flags. This record is from a cleared one-case release. The two-case release above never wrote a flag: it was refused before mutation.</p>
+        <p class="record-note">HMAC-SHA256. Edit a lift, an interval, an experiment id or a flag mutation and verification fails.</p>
+        <div class="code-block">
+          <div class="code-head"><span>release.json</span><button class="copy" type="button" data-copy-target="record-json">Copy</button></div>
+          <pre id="record-json">{
+  "release": "checkout-nov-2026",
+  "aggregate": { "state": "cleared", "exit_code": 0 },
+  "experiments": [
+    { "id": 13, "verdict": { "state": "winner", "winner": "red" } }
   ],
-  <span class="dim">"signature"</span>: { "alg": "hmac-sha256", "key_id": "1db834ae297b" }
+  "signature": { "alg": "hmac-sha256", "key_id": "1db834ae297b" }
 }</pre>
         </div>
+        <div class="record-command"><span>verify</span><code>docket verify release.json</code></div>
+      </div>
+
+      <div class="record-art reveal">
+        <div class="record-slip" data-slot="proof">
+          <div class="record-head">
+            <p class="paper-kicker">Decision record</p>
+            <span class="record-stamp">Cleared</span>
+          </div>
+          <p class="record-title">checkout-nov-2026</p>
+          <div class="record-lines">
+            <div><span>Aggregate</span><b>cleared / exit 0</b></div>
+            <div><span>Experiments</span><b>1</b></div>
+            <div><span>Winner</span><b>red / 100%</b></div>
+            <div><span>Signature</span><b>hmac-sha256 / 1db834ae297b</b></div>
+            <div><span>Ledger</span><b>1 record / 0 invalid</b></div>
+          </div>
+          <p class="record-foot">verified offline / 27 Nov 2026</p>
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="section" id="evidence">
-    <div class="wrap">
-      <div class="section-head reveal">
-        <h2>The evidence is the product.</h2>
-        <p>Every number on this page comes from a report generated by Docket against the live demo stack. Open the reports; do not trust the screenshots.</p>
-      </div>
-      <div class="evidence-grid">
-        <figure class="exhibit reveal">
-          <img src="media/guardrail-report.png" width="1100" height="1400" loading="lazy" alt="A Docket report showing the primary metric winning while refunds regress, so the verdict is guardrail.">
-          <figcaption>Case 11: the primary metric wins; refunds do not. The report is generated, not illustrated.</figcaption>
+  <section class="flagsmith" id="flagsmith" aria-labelledby="flagsmith-title">
+    <div class="wrap flagsmith-grid">
+      <div class="flagsmith-copy reveal">
+        <h2 id="flagsmith-title">Delete Flagsmith and there is nothing to decide.</h2>
+        <p>The experiment results are the evidence. The wiring is the audit. The feature state is the release. Docket reads all three from the Flagsmith API and writes the winner back through the same API.</p>
+        <figure class="flagsmith-shot">
+          <img src="media/flagsmith-express.png" width="1600" height="940" loading="eager" alt="The Express checkout experiment in Flagsmith, showing a running experiment and a winner probability above 99 percent.">
+          <figcaption>The express experiment in Flagsmith at the same moment. Docket reads the result; it does not replace the platform.</figcaption>
         </figure>
-        <div class="case-files reveal">
-          <a class="case-file" href="reports/winner.html">
-            <span class="num">10</span>
-            <span class="title">Checkout CTA<small>+143.2% / CI [74.7, 211.8] / 12 checks pass</small></span>
-            <span class="state winner">Winner</span>
-          </a>
-          <a class="case-file" href="reports/guardrail.html">
-            <span class="num">11</span>
-            <span class="title">Express checkout<small>primary +181.4% / refunds [98.4, 524.2]</small></span>
-            <span class="state guardrail">Guardrail</span>
-          </a>
-          <a class="case-file" href="reports/broken.html">
-            <span class="num">06</span>
-            <span class="title">Broken wiring<small>keyless variant / missing event / cloud events URL</small></span>
-            <span class="state wiring">3 blocks</span>
-          </a>
-          <p class="ledger-note">Reports come from demo runs. Demo shoppers are scripted by demo/load.py; the experiments, exposures, statistics and flag mutations are real self-hosted Flagsmith.</p>
-        </div>
       </div>
+
+      <ol class="path reveal" aria-label="The decision path through Flagsmith">
+        <li>
+          <span class="path-num">01</span>
+          <div><h3>Results are the input.</h3><p>The experiment's own sufficient statistics, interval, win probability, exposures and sample ratio. No second source of truth.</p><code>GET /experiments/{id}/results/</code></div>
+        </li>
+        <li>
+          <span class="path-num">02</span>
+          <div><h3>The wiring is the audit.</h3><p>Warehouse event names, variation keys, rollout allocations, metric definitions and the results snapshot.</p><code>GET /warehouse-connections/{id}/events/</code></div>
+        </li>
+        <li>
+          <span class="path-num">03</span>
+          <div><h3>The flag mutation is the release.</h3><p>Docket completes each experiment and writes the winning variation to 100%, only after the whole docket clears.</p><code>POST /experiments/{id}/complete/</code></div>
+        </li>
+      </ol>
     </div>
   </section>
 
-  <section class="section" id="flagsmith">
-    <div class="wrap">
-      <div class="section-head reveal">
-        <h2>Delete Flagsmith and there is nothing to decide.</h2>
-        <p>The experiment results are the evidence. The warehouse and variations are the audit. The feature state is the release.</p>
-      </div>
-      <div class="integration-list">
-        <div class="integration-item reveal">
-          <h3>Results are the input</h3>
-          <p>Docket reads the experiment's own sufficient statistics, interval, win probability, exposures and sample ratio. No second source of truth.</p>
-          <code>GET /environments/{env}/experiments/{id}/results/</code>
-        </div>
-        <div class="integration-item reveal">
-          <h3>The wiring is the audit</h3>
-          <p>Warehouse event names, variations and keys, rollout allocations, metric definitions and the results snapshot.</p>
-          <code>GET /environments/{env}/warehouse-connections/{id}/events/</code>
-        </div>
-        <div class="integration-item reveal">
-          <h3>The flag mutation is the release</h3>
-          <p>Docket completes each experiment and writes the winning variation to 100%, only after the whole docket clears.</p>
-          <code>POST /environments/{env}/experiments/{id}/complete/</code>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="install">
+  <section class="install" id="install" aria-labelledby="install-title">
     <div class="wrap install-grid">
-      <div class="install reveal">
-        <h2>Run it locally.</h2>
-        <p>One command brings up self-hosted Flagsmith, two live experiments, a sample shop and a release docket with a deliberately broken case.</p>
-        <p>Requirements: Docker Compose and Python 3.11+. The first run pulls the Flagsmith image and builds the shop.</p>
-        <p class="install-note">If port 8080 is taken, run DOCKET_PORT=8088 make demo. Flagsmith stays on 8000.</p>
-        <p class="install-note">The same gate runs as a composite GitHub Action: <code>uses: LangerSword/docket/action@v1</code>.</p>
-        <p><a class="btn btn-ghost" href="https://github.com/LangerSword/docket#run-the-whole-thing-in-one-command">Read the quickstart</a></p>
+      <div class="install-copy reveal">
+        <h2 id="install-title">Run the whole thing.</h2>
+        <p>One command brings up self-hosted Flagsmith, two live experiments, a sample shop and a release docket with a deliberately broken fixture.</p>
+        <p class="install-note">Docker Compose and Python 3.11+. No account. No hosted service. If port 8080 is taken, run <code>DOCKET_PORT=8088 make demo</code>.</p>
+        <a class="text-link" href="https://github.com/LangerSword/docket#run-the-whole-thing-in-one-command">Read the quickstart <span aria-hidden="true">↗</span></a>
       </div>
-      <div class="code-stack">
-        <div class="code-block reveal">
-          <div class="code-head"><span>Terminal</span><button class="copy" type="button">Copy</button></div>
-          <pre>git clone https://github.com/LangerSword/docket
+
+      <div class="install-code reveal">
+        <div class="code-tabs" role="tablist" aria-label="Install options">
+          <button class="code-tab" role="tab" id="tab-cli" aria-controls="panel-cli" aria-selected="true">CLI</button>
+          <button class="code-tab" role="tab" id="tab-action" aria-controls="panel-action" aria-selected="false" tabindex="-1">Action</button>
+          <button class="code-tab" role="tab" id="tab-docker" aria-controls="panel-docker" aria-selected="false" tabindex="-1">Docker</button>
+        </div>
+        <div class="code-panel" role="tabpanel" id="panel-cli" aria-labelledby="tab-cli">
+          <div class="code-head"><span>Terminal</span><button class="copy" type="button" data-copy-target="code-cli">Copy</button></div>
+          <pre id="code-cli">git clone https://github.com/LangerSword/docket
 cd docket
+make demo
+
+docket --config demo/docket.release.toml release check
+docket --config demo/docket.release.toml release ship --confirm --sign</pre>
+        </div>
+        <div class="code-panel" role="tabpanel" id="panel-action" aria-labelledby="tab-action" hidden>
+          <div class="code-head"><span>GitHub Actions</span><button class="copy" type="button" data-copy-target="code-action">Copy</button></div>
+          <pre id="code-action">- uses: LangerSword/docket/action@v1
+  with:
+    token: ${{ secrets.DOCKET_TOKEN }}
+    env: ${{ vars.FLAGSMITH_ENV }}
+    experiment: 16</pre>
+        </div>
+        <div class="code-panel" role="tabpanel" id="panel-docker" aria-labelledby="tab-docker" hidden>
+          <div class="code-head"><span>Docker</span><button class="copy" type="button" data-copy-target="code-docker">Copy</button></div>
+          <pre id="code-docker">docker compose up -d
+make seed
+make load
 make demo</pre>
         </div>
-        <div class="code-block reveal">
-          <div class="code-head"><span>Release docket</span><button class="copy" type="button">Copy</button></div>
-          <pre>docket --config demo/docket.release.toml release check
-docket --config demo/docket.release.toml release ship --confirm --sign
-docket verify release.json
-docket ledger verify release-ledger.jsonl</pre>
-        </div>
       </div>
     </div>
   </section>
 
-  <section class="section" id="roadmap">
+  <section class="limits" id="limits" aria-labelledby="limits-title">
     <div class="wrap">
-      <div class="section-head reveal">
-        <h2>From a gate to a release decision layer.</h2>
-        <p>Docket is the first vertical slice: evidence, decision, mutation and record. The rest is the layer around it.</p>
+      <div class="limits-head reveal">
+        <h2 id="limits-title">What it does not do yet.</h2>
+        <p>The release decision is real. The layer after it is not finished, and the page says so.</p>
       </div>
-      <div class="roadmap-list">
-        <div class="roadmap-item reveal">
-          <h3>Docket and ledger</h3>
-          <p>Release-level decisions over several experiments, signed records, append-only ledger, offline verification.</p>
-          <span class="status shipped">Shipped</span>
-        </div>
-        <div class="roadmap-item reveal">
-          <h3>Guard and rollback</h3>
-          <p>Watch guardrails after the flag flips. Pause or roll back with approval and record the guard decision.</p>
-          <span class="status next">Next</span>
-        </div>
-        <div class="roadmap-item reveal">
-          <h3>Policy as code</h3>
-          <p>Freeze windows, guardrail bands, sample floors and approver rules, evaluated locally and in CI.</p>
-          <span class="status planned">Planned</span>
-        </div>
-        <div class="roadmap-item reveal">
-          <h3>OpenFeature and agent CLI</h3>
-          <p>The same decision engine beyond Flagsmith, plus a deterministic interface for coding agents.</p>
-          <span class="status planned">Planned</span>
-        </div>
+      <div class="limits-list reveal" data-slot="constraints">
+        <div class="limit-row"><span>Post-ship</span><p>Once a winner is live, Docket does not watch the guardrail or roll it back.</p><b>Next</b></div>
+        <div class="limit-row"><span>Hosted console</span><p>The browser console at <code>/app</code> is the next surface. Today the product is the CLI and the Action.</p><b>Next</b></div>
+        <div class="limit-row"><span>Token scope</span><p>Docket needs the Flagsmith Admin API. Use a dedicated token and revoke it when the release is done.</p><b>Known</b></div>
       </div>
-      <p><a class="btn btn-ghost" href="https://github.com/LangerSword/docket/blob/main/ROADMAP.md">Read the roadmap</a></p>
+      <p class="limits-next">Next: <code>/app</code> console, post-ship guard, policy as code. <a href="https://github.com/LangerSword/docket/blob/main/ROADMAP.md">Read the roadmap <span aria-hidden="true">↗</span></a></p>
     </div>
   </section>
 
 </main>
 
-<footer class="footer">
-  <div class="wrap">
-    <div class="footer-grid">
-      <div>
-        <a class="brand" href="./">docket<span>.</span></a>
-        <p style="margin-top:14px">Release decisions for Flagsmith experiments. One docket, every case, one signed record.</p>
-      </div>
-      <div class="footer-links">
-        <a href="https://github.com/LangerSword/docket">GitHub</a>
-        <a href="https://github.com/LangerSword/docket#readme">README</a>
-        <a href="https://github.com/LangerSword/docket/blob/main/ROADMAP.md">Roadmap</a>
-        <a href="reports/winner.html">Reports</a>
-      </div>
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div>
+      <a class="brand" href="./">docket<span>.</span></a>
+      <p>Release decisions for self-hosted Flagsmith. One docket, every case, one signed record.</p>
     </div>
-    <div class="footer-bottom">
-      <span>MIT. Built for Toggle Wars, Track 03.</span>
-      <span>Demo shoppers are scripted; the experiments and flag mutations are real.</span>
+    <div class="footer-links">
+      <a href="https://github.com/LangerSword/docket">GitHub</a>
+      <a href="https://github.com/LangerSword/docket#readme">README</a>
+      <a href="https://github.com/LangerSword/docket/blob/main/ROADMAP.md">Roadmap</a>
+      <a href="reports/winner.html">Reports</a>
     </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>MIT / built for Toggle Wars, Track 03</span>
+    <span>Demo shoppers are scripted. Experiments, exposures, statistics and mutations are real self-hosted Flagsmith.</span>
   </div>
 </footer>
 

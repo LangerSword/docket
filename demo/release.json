@@ -1,0 +1,63 @@
+{
+  "tool": "docket",
+  "generated_at": "2026-11-27T17:58:00.444045+00:00",
+  "release": "checkout-nov-2026",
+  "environment": "9MNW9c7eiUCbKiD7tdsAzX",
+  "aggregate": {
+    "state": "cleared",
+    "exit_code": 0
+  },
+  "experiments": [
+    {
+      "id": 13,
+      "label": "checkout CTA",
+      "verdict": {
+        "state": "winner",
+        "exit_code": 0,
+        "reasons": [
+          "red: lift +102.9%, 95% interval [+53.1%, +152.8%], chance to win 100.0%"
+        ],
+        "arms": {
+          "red": {
+            "n": 830,
+            "total": 175.0,
+            "mean": 0.210843
+          },
+          "control": {
+            "n": 770,
+            "total": 80.0,
+            "mean": 0.103896
+          }
+        },
+        "inference": {
+          "red": {
+            "lift": 1.029367469879518,
+            "ci_low": 0.5305016054409585,
+            "ci_high": 1.5282333343180778,
+            "chance_to_win": 0.9999737511657056
+          }
+        },
+        "srm_p": 0.13361440253771617,
+        "as_of": "2026-11-27T17:54:31.805244Z",
+        "winner": "red",
+        "more_traffic_needed": null
+      },
+      "mutation": {
+        "experiment": 13,
+        "label": "checkout CTA",
+        "feature": 1,
+        "feature_state": 1,
+        "winner": "red",
+        "value": "red",
+        "option": 1,
+        "allocation": 100
+      }
+    }
+  ],
+  "actor": "local",
+  "signature": {
+    "alg": "hmac-sha256",
+    "key_id": "1db834ae297b",
+    "value": "5befbfe971ee8418adcad071a9b4a7fdc9ce15df0c088cea2b55e4bbe82b99c0"
+  }
+}

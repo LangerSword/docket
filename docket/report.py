@@ -6,13 +6,13 @@ import json
 from datetime import datetime, timezone
 
 STATE_COLOURS = {
-    "winner": "#2fbf71",
-    "collecting": "#e3b341",
-    "inconclusive": "#e3b341",
-    "losing": "#e5534b",
-    "broken": "#e5534b",
-    "guardrail": "#e5534b",
-    "unreachable": "#8b949e",
+    "winner": "#2f6347",
+    "collecting": "#8a6a1f",
+    "inconclusive": "#8a6a1f",
+    "losing": "#b33127",
+    "broken": "#b33127",
+    "guardrail": "#b33127",
+    "unreachable": "#5d6159",
 }
 
 
@@ -66,38 +66,43 @@ def render(docket: dict, checks: list[dict] | None, experiment: int,
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Docket · experiment {experiment}</title>
 <style>
-  :root {{ color-scheme: dark; }}
+  @font-face {{ font-family:"Bricolage"; src:url("../assets/fonts/bricolage-grotesque.woff2") format("woff2"); font-weight:400 800; }}
+  @font-face {{ font-family:"Instrument"; src:url("../assets/fonts/instrument-sans.woff2") format("woff2"); font-weight:400 700; }}
+  @font-face {{ font-family:"DocketMono"; src:url("../assets/fonts/jetbrains-mono-latin.woff2") format("woff2"); font-weight:400 500; }}
+  :root {{ color-scheme: light; }}
   * {{ box-sizing: border-box; }}
-  body {{ margin:0; background:#0d1117; color:#e6edf3;
-         font:15px/1.6 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif; }}
-  main {{ max-width:820px; margin:0 auto; padding:56px 24px 96px; }}
-  h1 {{ font-size:15px; letter-spacing:.14em; text-transform:uppercase; color:#8b949e;
-        font-weight:600; margin:0 0 8px; }}
-  .state {{ font-size:44px; font-weight:700; letter-spacing:-.02em; color:{colour}; margin:0 0 28px; }}
-  .card {{ border:1px solid #21262d; border-radius:10px; padding:20px 22px; margin:0 0 18px;
-           background:#0f141b; }}
-  .card h2 {{ font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#8b949e;
-              margin:0 0 14px; font-weight:600; }}
+  body {{ margin:0; background:#efe7d6; color:#151714;
+         font:15px/1.65 "Instrument","Helvetica Neue",Arial,sans-serif; }}
+  main {{ max-width:880px; margin:0 auto; padding:56px 28px 96px; }}
+  .kicker {{ font:400 9px/1 "DocketMono",monospace; letter-spacing:.16em; text-transform:uppercase; color:#5d6159; margin:0 0 10px; }}
+  h1 {{ font:600 18px/1.2 "Bricolage","Helvetica Neue",sans-serif; letter-spacing:-.02em;
+        margin:0 0 8px; }}
+  .state {{ font:650 58px/.92 "Bricolage","Helvetica Neue",sans-serif;
+            letter-spacing:-.05em; color:{colour}; margin:0 0 28px; }}
+  .card {{ border-top:1px solid #c9c0ad; padding:20px 0 22px; margin:0; }}
+  .card h2 {{ font:400 9px/1 "DocketMono",monospace; letter-spacing:.14em; text-transform:uppercase; color:#5d6159;
+              margin:0 0 14px; }}
   table {{ width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }}
-  th,td {{ text-align:left; padding:7px 6px; border-bottom:1px solid #1c2128; }}
-  th {{ color:#8b949e; font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:.08em; }}
-  code {{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; }}
-  .bar {{ position:relative; height:34px; margin:10px 0 4px; background:#161b22;
-          border-radius:6px; overflow:hidden; }}
-  .zero {{ position:absolute; top:0; bottom:0; width:1px; background:#e6edf3; opacity:.55; }}
-  .range {{ position:absolute; top:11px; height:12px; background:{colour}; opacity:.35; border-radius:3px; }}
-  .point {{ position:absolute; top:4px; width:3px; height:26px; background:{colour}; border-radius:2px; }}
-  .scale {{ display:flex; justify-content:space-between; color:#8b949e; font-size:12px; }}
+  th,td {{ text-align:left; padding:8px 8px 8px 0; border-bottom:1px solid #d6cbb6; }}
+  th {{ color:#5d6159; font-weight:400; font-size:9px; font-family:"DocketMono",monospace; text-transform:uppercase; letter-spacing:.1em; }}
+  code {{ font-family:"DocketMono","SFMono-Regular",Menlo,monospace; font-size:12px; }}
+  .bar {{ position:relative; height:28px; margin:10px 0 4px; background:#d7ccb7;
+          overflow:hidden; }}
+  .zero {{ position:absolute; top:0; bottom:0; width:1px; background:#151714; opacity:.55; }}
+  .range {{ position:absolute; top:8px; height:12px; background:{colour}; opacity:.45; }}
+  .point {{ position:absolute; top:2px; width:2px; height:24px; background:{colour}; }}
+  .scale {{ display:flex; justify-content:space-between; color:#5d6159; font:400 9px/1.5 "DocketMono",monospace; }}
   ul {{ margin:0; padding-left:18px; }}
   li {{ margin:4px 0; }}
-  .pass td:first-child {{ color:#2fbf71; }}
-  .warn td:first-child {{ color:#e3b341; }}
-  .block td:first-child {{ color:#e5534b; }}
-  .muted {{ color:#8b949e; }}
-  footer {{ margin-top:32px; color:#8b949e; font-size:12px; }}
-  a {{ color:#58a6ff; text-decoration:none; }}
+  .pass td:first-child {{ color:#2f6347; }}
+  .warn td:first-child {{ color:#8a6a1f; }}
+  .block td:first-child {{ color:#b33127; }}
+  .muted {{ color:#5d6159; }}
+  footer {{ margin-top:28px; padding-top:14px; border-top:1px solid #c9c0ad; color:#5d6159; font:400 9px/1.7 "DocketMono",monospace; }}
+  a {{ color:#151714; text-decoration:none; border-bottom:1px solid #b33127; }}
 </style></head><body><main>
-  <h1>Docket · experiment {experiment}</h1>
+  <p class="kicker">Docket / decision report</p>
+  <h1>Experiment {experiment}</h1>
   <p class="state">{state}</p>
 
   <section class="card">
