@@ -252,6 +252,7 @@ ledger 1 record, 0 invalid</pre>
         <p>One command brings up self-hosted Flagsmith, two live experiments, a sample shop and a deliberately broken fixture.</p>
         <p>Requirements: Docker Compose and Python 3.11+. The first run pulls the Flagsmith image and builds the shop.</p>
         <p class="install-note">If port 8080 is taken, run DEMO_PORT=8088 make demo. Flagsmith stays on 8000.</p>
+        <p class="install-note">The same gate runs as a composite GitHub Action: <code>uses: LangerSword/verdict/action@v1</code>.</p>
         <p><a class="btn btn-ghost" href="https://github.com/LangerSword/verdict#run-the-whole-thing-in-one-command">Read the quickstart</a></p>
       </div>
       <div class="code-stack">
