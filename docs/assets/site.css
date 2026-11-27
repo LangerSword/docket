@@ -122,15 +122,15 @@ button { font: inherit; color: inherit; }
 .docket-title { font: 400 27px/1.05 var(--serif); letter-spacing: -.03em; }
 .docket-id { text-align: right; font: 400 10px/1.5 var(--mono); color: #5f5c53; }
 .docket-id strong { display: block; color: var(--ink); font-weight: 400; }
-.stamp { position: absolute; right: 24px; top: 86px; z-index: 2; border: 3px double var(--stamp); color: var(--stamp); font: 700 20px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; padding: 7px 11px; transform: rotate(-8deg); opacity: .92; }
+.stamp { position: absolute; right: 18px; top: -18px; z-index: 2; border: 3px double var(--stamp); color: var(--stamp); font: 700 20px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; padding: 7px 11px; transform: rotate(-8deg); opacity: .92; }
 .case-list { position: relative; margin-top: 20px; }
 .case-row { display: grid; grid-template-columns: 46px minmax(0,1fr) 92px; gap: 10px 12px; padding: 12px 0; border-bottom: 1px solid #c9c0ad; align-items: baseline; }
 .case-id { font: 400 10px/1 var(--mono); color: #6b675c; }
-.case-name { font: 400 17px/1.2 var(--serif); letter-spacing: -.01em; }
-.case-state { font: 400 9px/1.2 var(--mono); letter-spacing: .12em; text-transform: uppercase; text-align: right; }
+.case-name { font: 400 18px/1.2 var(--serif); letter-spacing: -.01em; }
+.case-state { font: 400 9.5px/1.2 var(--mono); letter-spacing: .12em; text-transform: uppercase; text-align: right; }
 .case-state.winner { color: var(--clear); }
 .case-state.guardrail { color: var(--stamp); }
-.case-nums { grid-column: 2 / -1; font: 400 10px/1.55 var(--mono); color: #5f5c53; margin-top: 2px; }
+.case-nums { grid-column: 2 / -1; font: 400 10.5px/1.55 var(--mono); color: #5f5c53; margin-top: 2px; }
 .docket-foot { position: relative; display: flex; justify-content: space-between; gap: 20px; align-items: flex-end; padding-top: 16px; }
 .aggregate { font: 400 10px/1.5 var(--mono); color: #5f5c53; }
 .aggregate strong { display: block; font: 500 13px/1.2 var(--mono); color: var(--stamp); letter-spacing: .06em; }
