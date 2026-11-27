@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Docket console - release decisions</title>
+  <meta name="description" content="Inspect a release docket, run a live release check, ship with confirmation, and download the signed record. No signup.">
+  <meta name="robots" content="noindex">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' http://127.0.0.1:8765 https://*.execute-api.ap-south-1.amazonaws.com; img-src 'self' data:; style-src 'self'; font-src 'self'; script-src 'self'; base-uri 'none'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="../assets/fonts/anton.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../assets/fonts/newsreader.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<a class="skip" href="#decision">Skip to the decision</a>
+
+<header class="app-top">
+  <a class="brand" href="../">docket<span>.</span></a>
+  <span class="top-sep">/</span>
+  <span class="top-label">Console</span>
+  <span class="mode-badge" id="mode-badge">Demo</span>
+  <div class="top-actions">
+    <button class="top-button" id="connect-button" type="button">Connect Flagsmith</button>
+    <a class="top-link" href="../">Site <span aria-hidden="true">↗</span></a>
+  </div>
+</header>
+
+<main class="app-main" data-slot="console">
+  <aside class="rail" aria-label="Release cases">
+    <div class="rail-head">
+      <p class="micro">Release</p>
+      <h1 id="release-name">checkout-nov-2026</h1>
+      <p class="rail-state" id="release-state">Loading recorded file</p>
+    </div>
+    <div class="case-list" id="case-list" role="list"></div>
+    <div class="rail-note">
+      <p class="micro">Aggregate</p>
+      <p id="aggregate-copy">1 of 2 cases cleared / exit 2</p>
+    </div>
+    <div class="rail-actions">
+      <button class="button button-paper" id="run-button" type="button">Run check</button>
+      <button class="button button-line" id="ship-button" type="button" disabled>Ship release</button>
+    </div>
+    <p class="rail-help" id="rail-help">The demo is a recorded file. Connect your own Flagsmith to run it live.</p>
+  </aside>
+
+  <section class="decision" id="decision" data-slot="decision" aria-live="polite">
+    <div class="decision-head">
+      <div>
+        <p class="micro dark" id="case-kicker">Case 16 / Checkout CTA</p>
+        <h2 id="case-name">Checkout CTA</h2>
+      </div>
+      <span class="state-badge" id="case-state">Winner</span>
+    </div>
+
+    <div class="lift-row">
+      <p class="lift" id="case-lift">+127.2<span>%</span></p>
+      <p class="lift-label" id="case-lift-label">lift vs control</p>
+    </div>
+    <div class="interval" id="interval">
+      <span class="interval-zero" aria-hidden="true"></span>
+      <span class="interval-band" aria-hidden="true"></span>
+      <span class="interval-point" aria-hidden="true"></span>
+    </div>
+    <p class="interval-caption" id="interval-caption">95% interval +71.0% to +183.4%</p>
+
+    <div class="case-reasons" id="case-reasons">
+      <p>red: lift +127.2%, interval clears zero, chance to win 100.0%.</p>
+    </div>
+
+    <div class="case-stats" id="case-stats"></div>
+
+    <div class="case-checks">
+      <div class="checks-head"><p class="micro dark">Audit</p><span id="checks-summary">11 pass</span></div>
+      <div id="check-list"></div>
+    </div>
+
+    <details class="raw">
+      <summary>Raw docket JSON</summary>
+      <pre id="raw-json">{}</pre>
+    </details>
+  </section>
+
+  <aside class="side" aria-label="Evidence and record">
+    <div class="side-block">
+      <p class="micro">Mode</p>
+      <p class="side-strong" id="mode-copy">Recorded demo</p>
+      <p class="side-muted" id="source-copy">27 Nov 2026, 20:41 UTC / self-hosted Flagsmith</p>
+    </div>
+
+    <div class="side-block">
+      <p class="micro">Record</p>
+      <div id="record-block" data-slot="proof">
+        <p class="side-strong">checkout-nov-2026</p>
+        <dl class="record-mini">
+          <div><span>State</span><b>cleared / exit 0</b></div>
+          <div><span>Key</span><b>1db834ae297b</b></div>
+          <div><span>Experiments</span><b>1</b></div>
+        </dl>
+        <div class="record-actions">
+          <button class="button button-paper small" id="download-button" type="button">Download JSON</button>
+          <button class="button button-line small" id="verify-button" type="button">Verify</button>
+        </div>
+        <p class="side-note" id="verify-result"></p>
+      </div>
+    </div>
+
+    <div class="side-block">
+      <p class="micro">Session</p>
+      <p class="side-muted">Tokens and signing keys stay in memory for this tab. Nothing is written to storage.</p>
+      <button class="button button-line small" id="forget-button" type="button">Forget session</button>
+    </div>
+
+    <p class="side-credit">Built for Toggle Wars, Track 03. Demo shoppers are scripted; experiments and mutations are real.</p>
+  </aside>
+</main>
+
+<dialog class="dialog" id="connect-dialog" aria-labelledby="connect-title">
+  <form method="dialog" class="dialog-form" id="connect-form">
+    <div class="dialog-head">
+      <div><p class="micro dark">Live connection</p><h2 id="connect-title">Connect your Flagsmith.</h2></div>
+      <button class="icon-button" type="button" id="close-connect" aria-label="Close">×</button>
+    </div>
+    <p class="dialog-lede">No account. The token is sent to the Docket API for the request and is never stored. Use a dedicated token you can revoke.</p>
+    <div class="field-grid">
+      <label>Flagsmith base URL<input id="base-input" name="base" type="url" autocomplete="off" spellcheck="false" placeholder="https://flagsmith.example.com" required></label>
+      <label>Environment key<input id="environment-input" name="environment" type="text" autocomplete="off" spellcheck="false" placeholder="Environment SDK key" required></label>
+      <label>Admin API token<input id="token-input" name="token" type="password" autocomplete="new-password" spellcheck="false" placeholder="Token" required></label>
+      <label>Events URL <span>(optional)</span><input id="events-input" type="url" autocomplete="off" spellcheck="false" placeholder="https://your-host/api/"></label>
+      <label>Signing key <span>(for ship)</span><input id="signing-input" name="signing_key" type="password" autocomplete="new-password" spellcheck="false" placeholder="Optional until you ship"></label>
+    </div>
+    <label class="config-label">Release config <span>TOML</span><textarea id="config-input" name="config" rows="12" spellcheck="false" required></textarea></label>
+    <p class="dialog-error" id="connect-error" role="alert"></p>
+    <div class="dialog-actions">
+      <button class="button button-line" type="button" id="demo-button">Use demo instead</button>
+      <button class="button button-paper" type="submit" id="connect-submit">Connect and check</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="dialog dialog-small" id="confirm-dialog" aria-labelledby="confirm-title">
+  <form method="dialog" class="dialog-form" id="confirm-form">
+    <div class="dialog-head">
+      <div><p class="micro dark">Irreversible flag change</p><h2 id="confirm-title">Ship this release?</h2></div>
+      <button class="icon-button" type="button" id="close-confirm" aria-label="Close">×</button>
+    </div>
+    <p class="dialog-lede">Docket will complete every experiment in the docket and write each winner to 100%. Type <strong>SHIP</strong> to confirm.</p>
+    <label>Confirmation<input id="confirm-input" type="text" autocomplete="off" spellcheck="false" placeholder="SHIP"></label>
+    <p class="dialog-error" id="confirm-error" role="alert"></p>
+    <div class="dialog-actions">
+      <button class="button button-line" type="button" id="cancel-confirm">Cancel</button>
+      <button class="button button-red" type="submit" id="confirm-submit" disabled>Ship and sign</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

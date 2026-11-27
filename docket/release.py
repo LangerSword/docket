@@ -158,11 +158,13 @@ def load_release(raw: dict[str, Any], base: RuleConfig | None = None) -> Release
     )
 
 
-def evaluate(client: Flagsmith, env_key: str, config: ReleaseConfig) -> ReleaseResult:
+def evaluate(client: Flagsmith, env_key: str, config: ReleaseConfig,
+             events_url: str | None = None) -> ReleaseResult:
     cases: list[CaseResult] = []
     for case in config.cases:
         try:
-            checks, verdict = run_audit(client, env_key, case.id, case.config)
+            checks, verdict = run_audit(client, env_key, case.id, case.config,
+                                        events_url=events_url)
         except ApiError:
             checks, verdict = [], None
         cases.append(CaseResult(case=case, verdict=verdict, checks=checks))

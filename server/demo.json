@@ -1,0 +1,289 @@
+{
+  "source": "Recorded 27 Nov 2026 20:41 UTC against self-hosted Flagsmith. Demo shoppers are scripted; exposures, statistics and mutations are real.",
+  "release": {
+    "release": "checkout-nov-2026",
+    "state": "blocked",
+    "exit_code": 2,
+    "cases": [
+      {
+        "id": 16,
+        "label": "checkout CTA",
+        "state": "winner",
+        "blocked": false,
+        "verdict": {
+          "state": "winner",
+          "exit_code": 0,
+          "reasons": [
+            "red: lift +127.2%, 95% interval [+71.0%, +183.4%], chance to win 100.0%"
+          ],
+          "arms": {
+            "red": {
+              "n": 804,
+              "total": 179.0,
+              "mean": 0.222637
+            },
+            "control": {
+              "n": 796,
+              "total": 78.0,
+              "mean": 0.09799
+            }
+          },
+          "inference": {
+            "red": {
+              "lift": 1.2720372496491903,
+              "ci_low": 0.710044792690717,
+              "ci_high": 1.8340297066076636,
+              "chance_to_win": 0.999995423331902
+            }
+          },
+          "srm_p": 0.8414805811217939,
+          "as_of": "2026-11-27T20:41:14.284667Z",
+          "winner": "red",
+          "more_traffic_needed": null
+        },
+        "checks": [
+          {
+            "name": "warehouse",
+            "status": "pass",
+            "detail": "postgres connection is connected",
+            "fix": ""
+          },
+          {
+            "name": "experiment",
+            "status": "pass",
+            "detail": "experiment is running",
+            "fix": ""
+          },
+          {
+            "name": "rollout",
+            "status": "pass",
+            "detail": "rollout at 100.0%",
+            "fix": ""
+          },
+          {
+            "name": "variant keys",
+            "status": "pass",
+            "detail": "1 variation(s), all keyed",
+            "fix": ""
+          },
+          {
+            "name": "control variant",
+            "status": "pass",
+            "detail": "control is the feature's own value 'control'",
+            "fix": ""
+          },
+          {
+            "name": "allocation",
+            "status": "pass",
+            "detail": "variations 50%, control 50%",
+            "fix": ""
+          },
+          {
+            "name": "metric events",
+            "status": "pass",
+            "detail": "purchase_completed, refund_requested arrived in the warehouse",
+            "fix": ""
+          },
+          {
+            "name": "results",
+            "status": "pass",
+            "detail": "results as of 24 min ago",
+            "fix": ""
+          },
+          {
+            "name": "traffic both arms",
+            "status": "pass",
+            "detail": "exposures per arm: {'red': 804, 'control': 796}",
+            "fix": "a dead arm is a wiring bug: check assignment and identifiers"
+          },
+          {
+            "name": "conversions",
+            "status": "pass",
+            "detail": "conversions recorded on every arm with enough traffic",
+            "fix": ""
+          },
+          {
+            "name": "sample ratio",
+            "status": "pass",
+            "detail": "chi-square p=0.841 against configured split",
+            "fix": ""
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "label": "express checkout",
+        "state": "guardrail",
+        "blocked": false,
+        "verdict": {
+          "state": "guardrail",
+          "exit_code": 2,
+          "reasons": [
+            "red: lift +151.2%, 95% interval [+81.7%, +220.7%], chance to win 100.0%",
+            "guardrail metric refund_requested moved the wrong way: [+205.4%, +1189.0%] vs tolerance 0.0%"
+          ],
+          "arms": {
+            "red": {
+              "n": 832,
+              "total": 166.0,
+              "mean": 0.199519
+            },
+            "control": {
+              "n": 768,
+              "total": 61.0,
+              "mean": 0.079427
+            }
+          },
+          "inference": {
+            "red": {
+              "lift": 1.5119798234552335,
+              "ci_low": 0.81676976439942,
+              "ci_high": 2.207189882511047,
+              "chance_to_win": 0.9999898984340099
+            }
+          },
+          "srm_p": 0.10959858339911599,
+          "as_of": "2026-11-27T20:41:17.381554Z",
+          "winner": "red",
+          "more_traffic_needed": null
+        },
+        "checks": [
+          {
+            "name": "warehouse",
+            "status": "pass",
+            "detail": "postgres connection is connected",
+            "fix": ""
+          },
+          {
+            "name": "experiment",
+            "status": "pass",
+            "detail": "experiment is running",
+            "fix": ""
+          },
+          {
+            "name": "rollout",
+            "status": "pass",
+            "detail": "rollout at 100.0%",
+            "fix": ""
+          },
+          {
+            "name": "variant keys",
+            "status": "pass",
+            "detail": "1 variation(s), all keyed",
+            "fix": ""
+          },
+          {
+            "name": "control variant",
+            "status": "pass",
+            "detail": "control is the feature's own value 'control'",
+            "fix": ""
+          },
+          {
+            "name": "allocation",
+            "status": "pass",
+            "detail": "variations 50%, control 50%",
+            "fix": ""
+          },
+          {
+            "name": "metric events",
+            "status": "pass",
+            "detail": "purchase_completed, refund_requested arrived in the warehouse",
+            "fix": ""
+          },
+          {
+            "name": "results",
+            "status": "pass",
+            "detail": "results as of 24 min ago",
+            "fix": ""
+          },
+          {
+            "name": "traffic both arms",
+            "status": "pass",
+            "detail": "exposures per arm: {'red': 832, 'control': 768}",
+            "fix": "a dead arm is a wiring bug: check assignment and identifiers"
+          },
+          {
+            "name": "conversions",
+            "status": "pass",
+            "detail": "conversions recorded on every arm with enough traffic",
+            "fix": ""
+          },
+          {
+            "name": "sample ratio",
+            "status": "pass",
+            "detail": "chi-square p=0.11 against configured split",
+            "fix": ""
+          }
+        ]
+      }
+    ],
+    "reasons": [
+      "experiment 16 (checkout CTA): red: lift +127.2%, 95% interval [+71.0%, +183.4%], chance to win 100.0%",
+      "experiment 17 (express checkout): red: lift +151.2%, 95% interval [+81.7%, +220.7%], chance to win 100.0%",
+      "experiment 17 (express checkout): guardrail metric refund_requested moved the wrong way: [+205.4%, +1189.0%] vs tolerance 0.0%"
+    ]
+  },
+  "record": {
+    "tool": "docket",
+    "generated_at": "2026-11-27T17:58:00.444045+00:00",
+    "release": "checkout-nov-2026",
+    "environment": "9MNW9c7eiUCbKiD7tdsAzX",
+    "aggregate": {
+      "state": "cleared",
+      "exit_code": 0
+    },
+    "experiments": [
+      {
+        "id": 13,
+        "label": "checkout CTA",
+        "verdict": {
+          "state": "winner",
+          "exit_code": 0,
+          "reasons": [
+            "red: lift +102.9%, 95% interval [+53.1%, +152.8%], chance to win 100.0%"
+          ],
+          "arms": {
+            "red": {
+              "n": 830,
+              "total": 175.0,
+              "mean": 0.210843
+            },
+            "control": {
+              "n": 770,
+              "total": 80.0,
+              "mean": 0.103896
+            }
+          },
+          "inference": {
+            "red": {
+              "lift": 1.029367469879518,
+              "ci_low": 0.5305016054409585,
+              "ci_high": 1.5282333343180778,
+              "chance_to_win": 0.9999737511657056
+            }
+          },
+          "srm_p": 0.13361440253771617,
+          "as_of": "2026-11-27T17:54:31.805244Z",
+          "winner": "red",
+          "more_traffic_needed": null
+        },
+        "mutation": {
+          "experiment": 13,
+          "label": "checkout CTA",
+          "feature": 1,
+          "feature_state": 1,
+          "winner": "red",
+          "value": "red",
+          "option": 1,
+          "allocation": 100
+        }
+      }
+    ],
+    "actor": "local",
+    "signature": {
+      "alg": "hmac-sha256",
+      "key_id": "1db834ae297b",
+      "value": "5befbfe971ee8418adcad071a9b4a7fdc9ce15df0c088cea2b55e4bbe82b99c0"
+    }
+  }
+}

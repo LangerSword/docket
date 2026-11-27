@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Docket console API, stateless release decisions for self-hosted Flagsmith
+
+Globals:
+  Function:
+    Timeout: 60
+    MemorySize: 512
+    Runtime: python3.12
+    Architectures: [x86_64]
+
+Resources:
+  DocketApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowOrigin: "'https://langersword.github.io'"
+        AllowHeaders: "'content-type'"
+        AllowMethods: "'GET,POST,OPTIONS'"
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          ThrottlingBurstLimit: 20
+          ThrottlingRateLimit: 10
+
+  DocketFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: server.lambda_handler.handler
+      Description: Docket release decision API
+      Environment:
+        Variables:
+          DOCKET_ALLOW_PRIVATE_TARGETS: "0"
+          DOCKET_RATE_LIMIT_PER_MINUTE: "30"
+          DOCKET_CORS_ORIGINS: "https://langersword.github.io"
+      Events:
+        Root:
+          Type: Api
+          Properties:
+            RestApiId: !Ref DocketApi
+            Path: /
+            Method: ANY
+        Proxy:
+          Type: Api
+          Properties:
+            RestApiId: !Ref DocketApi
+            Path: /{proxy+}
+            Method: ANY
+
+Outputs:
+  ApiUrl:
+    Description: Docket API base URL
+    Value: !Sub "https://${DocketApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"

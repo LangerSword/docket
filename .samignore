@@ -1,0 +1,11 @@
+.git
+.venv
+docs
+tests
+demo
+*.mp4
+*.png
+*.jpg
+*.pdf
+node_modules
+.DS_Store

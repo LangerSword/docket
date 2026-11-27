@@ -14,3 +14,6 @@ demo/decision-*.json
 demo/decision-*.md
 demo/decision.json
 demo/decision.md
+
+.aws-sam/
+server/__pycache__/

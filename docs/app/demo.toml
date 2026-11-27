@@ -1,0 +1,31 @@
+[flagsmith]
+base = "http://localhost:8000"
+environment = "9MNW9c7eiUCbKiD7tdsAzX"
+
+[release]
+name = "checkout-nov-2026"
+require_signature = true
+
+[[experiment]]
+id = 16
+label = "checkout CTA"
+n_min = 50
+c_min = 5
+win_threshold = 0.95
+expected_direction = "increase"
+weights = { control = 50, red = 50 }
+guardrails = [
+  { metric_id = 2, name = "refund_requested", expected_direction = "not_increase", tolerance = 0.0 },
+]
+
+[[experiment]]
+id = 17
+label = "express checkout"
+n_min = 50
+c_min = 5
+win_threshold = 0.95
+expected_direction = "increase"
+weights = { control = 50, red = 50 }
+guardrails = [
+  { metric_id = 2, name = "refund_requested", expected_direction = "not_increase", tolerance = 0.0 },
+]
