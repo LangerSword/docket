@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "verdict"
+name = "docket"
 version = "0.1.0"
 description = "Experiment lifecycle control for self-hosted Flagsmith: audit the wiring, gate the release on statistics, ship the winner."
 readme = "README.md"
@@ -12,10 +12,10 @@ license = { text = "MIT" }
 dependencies = []
 
 [project.scripts]
-verdict = "verdict.cli:main"
+docket = "docket.cli:main"
 
 [tool.setuptools]
-packages = ["verdict"]
+packages = ["docket"]
 
 [tool.setuptools.package-data]
-verdict = ["py.typed"]
+docket = ["py.typed"]

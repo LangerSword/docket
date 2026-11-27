@@ -52,7 +52,7 @@ class Inference:
 
 
 @dataclass
-class Verdict:
+class Decision:
     state: State
     reasons: list[str] = field(default_factory=list)
     arms: dict[str, Arm] = field(default_factory=dict)
@@ -151,7 +151,7 @@ def _primary_metric(payload: dict) -> dict:
     return metrics[0]
 
 
-def decide(payload: dict, cfg: RuleConfig | None = None) -> Verdict:
+def decide(payload: dict, cfg: RuleConfig | None = None) -> Decision:
     """Turn a Flagsmith results payload into a state with reasons.
 
     Never raises for data problems: returns BROKEN with the reason, so the CLI
@@ -163,13 +163,13 @@ def decide(payload: dict, cfg: RuleConfig | None = None) -> Verdict:
     as_of = inner.get("as_of") if isinstance(inner, dict) else None
 
     if not body:
-        return Verdict(State.UNREACHABLE, ["results not computed yet; refresh and retry"],
+        return Decision(State.UNREACHABLE, ["results not computed yet; refresh and retry"],
                        as_of=as_of, exit_code=EXIT_CODES[State.UNREACHABLE])
 
     try:
         metric = _primary_metric(body)
     except ValueError as e:
-        return Verdict(State.BROKEN, [str(e)], as_of=as_of,
+        return Decision(State.BROKEN, [str(e)], as_of=as_of,
                        exit_code=EXIT_CODES[State.BROKEN])
 
     arms = {k: Arm(k, int(v.get("n", 0)), float(v.get("sum", 0.0)))
@@ -177,22 +177,22 @@ def decide(payload: dict, cfg: RuleConfig | None = None) -> Verdict:
     inference = {k: Inference(**{f: v.get(f) for f in ("lift", "ci_low", "ci_high", "chance_to_win")})
                  for k, v in (metric.get("inference") or {}).items()}
     if not arms:
-        return Verdict(State.BROKEN, ["no exposures recorded on any arm; instrumentation is not firing"],
+        return Decision(State.BROKEN, ["no exposures recorded on any arm; instrumentation is not firing"],
                        as_of=as_of, srm_p=body.get("srm_p_value"),
                        exit_code=EXIT_CODES[State.BROKEN])
 
     reasons: list[str] = []
-    verdict = Verdict(State.INCONCLUSIVE, reasons=reasons, arms=arms, inference=inference,
+    docket = Decision(State.INCONCLUSIVE, reasons=reasons, arms=arms, inference=inference,
                       as_of=as_of, srm_p=body.get("srm_p_value"))
-    verdict.exit_code = EXIT_CODES[State.INCONCLUSIVE]
+    docket.exit_code = EXIT_CODES[State.INCONCLUSIVE]
 
     # 1. Dead arm: a variant that never received traffic is a wiring bug, not a result.
     dead = [k for k, a in arms.items() if a.n == 0]
     if dead:
-        verdict.state = State.BROKEN
-        verdict.reasons = [f"variant {k!r} has zero exposures: assignment is not reaching the code" for k in dead]
-        verdict.exit_code = EXIT_CODES[State.BROKEN]
-        return verdict
+        docket.state = State.BROKEN
+        docket.reasons = [f"variant {k!r} has zero exposures: assignment is not reaching the code" for k in dead]
+        docket.exit_code = EXIT_CODES[State.BROKEN]
+        return docket
 
     # 2. Sample ratio mismatch: use the platform value when present, else compute.
     srm_p = body.get("srm_p_value")
@@ -201,34 +201,34 @@ def decide(payload: dict, cfg: RuleConfig | None = None) -> Verdict:
         if len(keys) == len(arms):
             srm_p = chi_square_p([arms[k].n for k in keys],
                                  [cfg.weights[k] / 100.0 for k in keys])
-            verdict.srm_p = srm_p
+            docket.srm_p = srm_p
     if srm_p is not None and srm_p < cfg.srm_alpha:
-        verdict.state = State.BROKEN
-        verdict.reasons = [f"sample ratio mismatch, p={srm_p:.2e}: the split broke, results are not trustworthy"]
-        verdict.exit_code = EXIT_CODES[State.BROKEN]
-        return verdict
+        docket.state = State.BROKEN
+        docket.reasons = [f"sample ratio mismatch, p={srm_p:.2e}: the split broke, results are not trustworthy"]
+        docket.exit_code = EXIT_CODES[State.BROKEN]
+        return docket
 
     # 3. Collecting: floors before any statistic means anything.
     short = [k for k, a in arms.items() if a.n < cfg.n_min]
     low_conv = [k for k, a in arms.items() if a.n >= cfg.n_min and a.total < cfg.c_min]
     if short or low_conv:
-        verdict.state = State.COLLECTING
-        verdict.reasons = ([f"{k}: n={arms[k].n} < {cfg.n_min}" for k in short] +
+        docket.state = State.COLLECTING
+        docket.reasons = ([f"{k}: n={arms[k].n} < {cfg.n_min}" for k in short] +
                            [f"{k}: conversions={arms[k].total:g} < {cfg.c_min}" for k in low_conv])
-        verdict.exit_code = EXIT_CODES[State.COLLECTING]
-        return verdict
+        docket.exit_code = EXIT_CODES[State.COLLECTING]
+        return docket
 
     control = arms.get(cfg.control_key)
     if control is None:
-        verdict.state = State.INCONCLUSIVE
-        verdict.reasons = [f"no variant keyed {cfg.control_key!r}: the engine cannot compute lift"]
-        verdict.exit_code = EXIT_CODES[State.INCONCLUSIVE]
-        return verdict
+        docket.state = State.INCONCLUSIVE
+        docket.reasons = [f"no variant keyed {cfg.control_key!r}: the engine cannot compute lift"]
+        docket.exit_code = EXIT_CODES[State.INCONCLUSIVE]
+        return docket
 
     treatments = {k: v for k, v in inference.items() if k != cfg.control_key}
     if not treatments:
-        verdict.reasons = ["no inference for any treatment yet"]
-        return verdict
+        docket.reasons = ["no inference for any treatment yet"]
+        return docket
 
     # 4. Pick the leading treatment, honouring expected direction.
     def effective_chance(inf: Inference) -> float | None:
@@ -241,7 +241,7 @@ def decide(payload: dict, cfg: RuleConfig | None = None) -> Verdict:
         key=lambda kv: (kv[1] is not None, kv[1] or 0.0), reverse=True)
     best_key, best_chance = ranked[0]
     best = treatments[best_key] or Inference()
-    verdict.winner = best_key
+    docket.winner = best_key
 
     def interval_clears(inf: Inference) -> bool:
         if inf.ci_low is None or inf.ci_high is None:
@@ -249,53 +249,63 @@ def decide(payload: dict, cfg: RuleConfig | None = None) -> Verdict:
         return inf.ci_low > 0 if cfg.expected_direction == "increase" else inf.ci_high < 0
 
     if best_chance is None or best.ci_low is None or best.ci_high is None:
-        verdict.reasons = [f"{best_key}: the engine returned no inference (no spread, or no control mean)"]
-        return verdict
+        docket.reasons = [f"{best_key}: the engine returned no inference (no spread, or no control mean)"]
+        return docket
 
-    verdict.reasons = [
+    docket.reasons = [
         f"{best_key}: lift {best.lift:+.1%}, 95% interval [{best.ci_low:+.1%}, {best.ci_high:+.1%}], "
         f"chance to win {best_chance:.1%}"
     ]
 
-    # 5. Guardrails: a winner that regressed something else is a refusal.
+    # 5. Guardrails: a winner that regressed something else is a refusal. A
+    # guardrail with no inference yet is not a pass: it is unmeasured.
     for g in cfg.guardrails:
         gid = g.get("metric_id")
-        for m in body.get("metrics") or []:
-            if m.get("metric_id") != gid:
-                continue
-            ginf = (m.get("inference") or {}).get(best_key)
-            if not ginf:
-                continue
-            direction = g.get("expected_direction", "not_increase")
-            tol = float(g.get("tolerance", 0.0))
-            low, high = ginf.get("ci_low"), ginf.get("ci_high")
-            if low is None or high is None:
-                continue
-            violated = (
-                (direction == "not_increase" and low - tol > 0) or
-                (direction == "not_decrease" and high + tol < 0)
-            )
-            if violated:
-                verdict.state = State.GUARDRAIL
-                verdict.reasons.append(
-                    f"guardrail metric {g.get('name', gid)} moved the wrong way: "
-                    f"[{low:+.1%}, {high:+.1%}] vs tolerance {tol:.1%}")
-                verdict.exit_code = EXIT_CODES[State.GUARDRAIL]
-                return verdict
+        rows = [m for m in body.get("metrics") or [] if m.get("metric_id") == gid]
+        if not rows:
+            docket.state = State.INCONCLUSIVE
+            docket.reasons = [f"guardrail metric {g.get('name', gid)} is not in the results payload; do not ship unmeasured"]
+            docket.exit_code = EXIT_CODES[State.INCONCLUSIVE]
+            return docket
+        ginf = (rows[0].get("inference") or {}).get(best_key)
+        if not ginf:
+            docket.state = State.INCONCLUSIVE
+            docket.reasons = [f"guardrail metric {g.get('name', gid)} has no inference yet; keep collecting"]
+            docket.exit_code = EXIT_CODES[State.INCONCLUSIVE]
+            return docket
+        direction = g.get("expected_direction", "not_increase")
+        tol = float(g.get("tolerance", 0.0))
+        low, high = ginf.get("ci_low"), ginf.get("ci_high")
+        if low is None or high is None:
+            docket.state = State.INCONCLUSIVE
+            docket.reasons = [f"guardrail metric {g.get('name', gid)} has no interval yet; keep collecting"]
+            docket.exit_code = EXIT_CODES[State.INCONCLUSIVE]
+            return docket
+        violated = (
+            (direction == "not_increase" and low - tol > 0) or
+            (direction == "not_decrease" and high + tol < 0)
+        )
+        if violated:
+            docket.state = State.GUARDRAIL
+            docket.reasons.append(
+                f"guardrail metric {g.get('name', gid)} moved the wrong way: "
+                f"[{low:+.1%}, {high:+.1%}] vs tolerance {tol:.1%}")
+            docket.exit_code = EXIT_CODES[State.GUARDRAIL]
+            return docket
 
-    # 6. Verdict.
+    # 6. Decision.
     if best_chance <= 0.05 or (not interval_clears(best) and
                                ((cfg.expected_direction == "increase" and best.ci_high < 0) or
                                 (cfg.expected_direction == "decrease" and best.ci_low > 0))):
-        verdict.state = State.LOSING
-        verdict.reasons.append(f"{best_key} is losing; do not ship")
-        verdict.exit_code = EXIT_CODES[State.LOSING]
-        return verdict
+        docket.state = State.LOSING
+        docket.reasons.append(f"{best_key} is losing; do not ship")
+        docket.exit_code = EXIT_CODES[State.LOSING]
+        return docket
 
     if best_chance >= cfg.win_threshold and interval_clears(best):
-        verdict.state = State.WINNER
-        verdict.exit_code = EXIT_CODES[State.WINNER]
-        return verdict
+        docket.state = State.WINNER
+        docket.exit_code = EXIT_CODES[State.WINNER]
+        return docket
 
     # Inconclusive: say what it would take, roughly (interval width scales as 1/sqrt(n)).
     if best.lift and best.lift > 0:
@@ -303,8 +313,8 @@ def decide(payload: dict, cfg: RuleConfig | None = None) -> Verdict:
         target = 2 * abs(best.lift)
         if width > 0 and target > 0:
             ratio = (width / target) ** 2
-            verdict.more_traffic_needed = int(arms[best_key].n * max(ratio, 1.0) - arms[best_key].n)
-    verdict.state = State.INCONCLUSIVE
-    verdict.exit_code = EXIT_CODES[State.INCONCLUSIVE]
-    verdict.reasons.append("interval still crosses zero; not enough traffic to call it")
-    return verdict
+            docket.more_traffic_needed = int(arms[best_key].n * max(ratio, 1.0) - arms[best_key].n)
+    docket.state = State.INCONCLUSIVE
+    docket.exit_code = EXIT_CODES[State.INCONCLUSIVE]
+    docket.reasons.append("interval still crosses zero; not enough traffic to call it")
+    return docket

@@ -37,16 +37,16 @@ def _interval_bar(low: float | None, high: float | None, lift: float | None) -> 
     """
 
 
-def render(verdict: dict, checks: list[dict] | None, experiment: int,
+def render(docket: dict, checks: list[dict] | None, experiment: int,
            environment: str, dashboard: str = "http://localhost:8000",
            project: int = 1) -> str:
-    state = verdict.get("state", "unreachable")
+    state = docket.get("state", "unreachable")
     colour = STATE_COLOURS.get(state, "#8b949e")
-    arms = verdict.get("arms") or {}
-    inf = verdict.get("inference") or {}
-    leader = verdict.get("winner") or ""
+    arms = docket.get("arms") or {}
+    inf = docket.get("inference") or {}
+    leader = docket.get("winner") or ""
     leader_inf = inf.get(leader) or {}
-    reasons = verdict.get("reasons") or []
+    reasons = docket.get("reasons") or []
 
     arm_rows = "".join(
         f"<tr><td><code>{html.escape(k)}</code></td><td>{v['n']}</td>"
@@ -64,7 +64,7 @@ def render(verdict: dict, checks: list[dict] | None, experiment: int,
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Verdict · experiment {experiment}</title>
+<title>Docket · experiment {experiment}</title>
 <style>
   :root {{ color-scheme: dark; }}
   * {{ box-sizing: border-box; }}
@@ -97,15 +97,15 @@ def render(verdict: dict, checks: list[dict] | None, experiment: int,
   footer {{ margin-top:32px; color:#8b949e; font-size:12px; }}
   a {{ color:#58a6ff; text-decoration:none; }}
 </style></head><body><main>
-  <h1>Verdict · experiment {experiment}</h1>
+  <h1>Docket · experiment {experiment}</h1>
   <p class="state">{state}</p>
 
   <section class="card">
     <h2>Decision</h2>
     <ul>{reason_html or '<li class="muted">no reasons recorded</li>'}</ul>
-    <p class="muted">as of {html.escape(str(verdict.get('as_of') or 'unknown'))}
-      · exit code {verdict.get('exit_code')}
-      {f"· roughly {verdict['more_traffic_needed']} more identities on the leader" if verdict.get('more_traffic_needed') else ""}</p>
+    <p class="muted">as of {html.escape(str(docket.get('as_of') or 'unknown'))}
+      · exit code {docket.get('exit_code')}
+      {f"· roughly {docket['more_traffic_needed']} more identities on the leader" if docket.get('more_traffic_needed') else ""}</p>
   </section>
 
   <section class="card">
@@ -130,7 +130,7 @@ def render(verdict: dict, checks: list[dict] | None, experiment: int,
   <footer>
     <a href="{html.escape(link)}">open in Flagsmith</a> ·
     generated {datetime.now(timezone.utc).isoformat(timespec="seconds")} ·
-    verdict is a snapshot, not a live query
+    docket is a snapshot, not a live query
   </footer>
 </main></body></html>
 """

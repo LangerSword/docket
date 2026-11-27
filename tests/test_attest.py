@@ -10,12 +10,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from verdict.attest import sign_record, verify_record
-from verdict.cli import main
+from docket.attest import sign_record, verify_record
+from docket.cli import main
 
 KEY = "test-signing-key"
 RECORD = {
-    "tool": "verdict",
+    "tool": "docket",
     "experiment": 7,
     "as_of": "2026-11-26T12:00:00Z",
     "verdict": {"state": "winner", "exit_code": 0},
@@ -66,7 +66,7 @@ class VerifyCliTest(unittest.TestCase):
             path = Path(tmp) / "decision.json"
             path.write_text(json.dumps(record))
             output = io.StringIO()
-            with patch.dict(os.environ, {"VERDICT_SIGNING_KEY": KEY}, clear=False):
+            with patch.dict(os.environ, {"DOCKET_SIGNING_KEY": KEY}, clear=False):
                 with contextlib.redirect_stdout(output):
                     code = main(["verify", str(path)])
             return code, output.getvalue()

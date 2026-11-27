@@ -1,4 +1,4 @@
-"""verdict CLI: audit, gate, ship. Exit codes are the contract."""
+"""docket CLI: audit, gate, ship. Exit codes are the contract."""
 from __future__ import annotations
 
 import argparse
@@ -16,6 +16,7 @@ from .checks import run_audit, summarise
 from .client import ApiError, Flagsmith
 from .ledger import append as ledger_append, read as ledger_read, verify_all as ledger_verify_all
 from .report import render
+from .release import (evaluate, load_release, plan_mutations, print_result, record, ship_plan, write_record)
 from .rules import EXIT_CODES, RuleConfig, decide, weights_from_experiment
 
 
@@ -38,20 +39,20 @@ def load_config(path: Path | None) -> tuple[dict, RuleConfig]:
 
 def make_client(args, raw: dict | None = None) -> Flagsmith:
     raw = raw or {}
-    base = (args.base or os.environ.get("VERDICT_BASE")
+    base = (args.base or os.environ.get("DOCKET_BASE")
             or (raw.get("flagsmith") or {}).get("base") or "http://localhost:8000")
-    token = args.token or os.environ.get("VERDICT_TOKEN", "")
+    token = args.token or os.environ.get("DOCKET_TOKEN", "")
     if token:
         return Flagsmith(base=base, token=token)
-    email = os.environ.get("VERDICT_EMAIL")
-    password = os.environ.get("VERDICT_PASSWORD")
+    email = os.environ.get("DOCKET_EMAIL")
+    password = os.environ.get("DOCKET_PASSWORD")
     if not (email and password):
-        raise SystemExit("no credentials: set VERDICT_TOKEN or VERDICT_EMAIL/VERDICT_PASSWORD")
+        raise SystemExit("no credentials: set DOCKET_TOKEN or DOCKET_EMAIL/DOCKET_PASSWORD")
     return Flagsmith.login(base, email, password)
 
 
-def print_verdict(v) -> None:
-    print(f"VERDICT: {v.state.value.upper()}  (exit {v.exit_code})")
+def print_docket(v) -> None:
+    print(f"DECISION: {v.state.value.upper()}  (exit {v.exit_code})")
     if v.winner:
         print(f"  leading variant: {v.winner}")
     for r in v.reasons:
@@ -64,7 +65,7 @@ def print_verdict(v) -> None:
 
 def cmd_audit(args, cfg: RuleConfig) -> int:
     client = make_client(args, getattr(args, "_raw", None))
-    checks, verdict = run_audit(client, args.env, args.experiment, cfg,
+    checks, docket = run_audit(client, args.env, args.experiment, cfg,
                                 events_url=args.events_url)
     for c in checks:
         mark = {"pass": "PASS", "warn": "WARN", "block": "BLOCK", "manual": "MANUAL"}[c.status]
@@ -74,7 +75,7 @@ def cmd_audit(args, cfg: RuleConfig) -> int:
     print(summarise(checks))
     if args.json:
         print(json.dumps({"checks": [vars(c) for c in checks],
-                          "verdict": verdict.to_dict() if verdict else None}, indent=2))
+                          "verdict": docket.to_dict() if docket else None}, indent=2))
     any_block = any(c.status == "block" for c in checks)
     return 2 if any_block else 0
 
@@ -95,7 +96,7 @@ def cmd_gate(args, cfg: RuleConfig) -> int:
     if args.json:
         print(json.dumps(v.to_dict(), indent=2))
     else:
-        print_verdict(v)
+        print_docket(v)
     return v.exit_code
 
 
@@ -103,19 +104,19 @@ def cmd_ship(args, cfg: RuleConfig) -> int:
     client = make_client(args, getattr(args, "_raw", None))
     v = decide_with_client(client, args.env, args.experiment, cfg)
     if v.state.value != "winner":
-        print_verdict(v)
-        print("REFUSING TO SHIP: the verdict is not WINNER")
+        print_docket(v)
+        print("REFUSING TO SHIP: the docket is not WINNER")
         return v.exit_code
     if not args.confirm:
-        print_verdict(v)
+        print_docket(v)
         print("Would ship. Re-run with --confirm to end the experiment and roll out the winner.")
         return 0
 
     signing_key = None
     if args.sign:
-        signing_key = os.environ.get("VERDICT_SIGNING_KEY", "")
+        signing_key = os.environ.get("DOCKET_SIGNING_KEY", "")
         if not signing_key:
-            print("REFUSING TO SIGN: set VERDICT_SIGNING_KEY before using --sign",
+            print("REFUSING TO SIGN: set DOCKET_SIGNING_KEY before using --sign",
                   file=sys.stderr)
             return 3
 
@@ -141,7 +142,7 @@ def cmd_ship(args, cfg: RuleConfig) -> int:
     client.set_winner(args.env, state["id"], winner, match["id"], value)
 
     record = {
-        "tool": "verdict",
+        "tool": "docket",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "experiment": args.experiment,
         "environment": args.env,
@@ -149,20 +150,20 @@ def cmd_ship(args, cfg: RuleConfig) -> int:
         "verdict": v.to_dict(),
         "mutation": {"feature": fid, "feature_state": state["id"],
                      "winner": winner, "value": value, "allocation": 100},
-        "actor": os.environ.get("VERDICT_ACTOR", os.environ.get("GITHUB_ACTOR", "local")),
+        "actor": os.environ.get("DOCKET_ACTOR", os.environ.get("GITHUB_ACTOR", "local")),
     }
     if signing_key:
         record = sign_record(record, signing_key)
-    out = Path(args.record or f"verdict-{args.experiment}-{int(time.time())}.json")
+    out = Path(args.record or f"docket-{args.experiment}-{int(time.time())}.json")
     out.write_text(json.dumps(record, indent=2))
     md = out.with_suffix(".md")
     signature = record.get("signature") or {}
     signature_line = (
         f"- signature: {signature.get('alg')} key {signature.get('key_id')} "
-        f"(verify with `verdict verify {out.name}`)\n" if signature else "")
+        f"(verify with `docket verify {out.name}`)\n" if signature else "")
     md.write_text(
         f"# Ship decision: experiment {args.experiment}\n\n"
-        f"- verdict: **{v.state.value}**\n- leading variant: `{winner}`\n"
+        f"- docket: **{v.state.value}**\n- leading variant: `{winner}`\n"
         f"- as of: {v.as_of}\n"
         + "".join(f"- {r}\n" for r in v.reasons)
         + f"- mutation: feature {fid}, state {state['id']}, allocation 100/0\n"
@@ -174,6 +175,74 @@ def cmd_ship(args, cfg: RuleConfig) -> int:
         except OSError as e:
             print(f"WARNING: ship succeeded but the ledger append failed: {e}", file=sys.stderr)
     print(f"SHIPPED {winner}: experiment ended, weight 100/0, record {out} and {md}{signed}")
+    return 0
+
+
+def cmd_release_check(args, cfg: RuleConfig) -> int:
+    raw = getattr(args, "_raw", {}) or {}
+    try:
+        release = load_release(raw, cfg)
+    except ValueError as e:
+        print(f"invalid release config: {e}", file=sys.stderr)
+        return 3
+    client = make_client(args, raw)
+    env = args.env or (raw.get("flagsmith") or {}).get("environment")
+    if not env:
+        print("no environment: set [flagsmith] environment or --env", file=sys.stderr)
+        return 3
+    result = evaluate(client, env, release)
+    if args.json:
+        print(json.dumps(result.to_dict(), indent=2))
+    else:
+        print_result(result)
+    return result.exit_code
+
+
+def cmd_release_ship(args, cfg: RuleConfig) -> int:
+    raw = getattr(args, "_raw", {}) or {}
+    try:
+        release = load_release(raw, cfg)
+    except ValueError as e:
+        print(f"invalid release config: {e}", file=sys.stderr)
+        return 3
+    client = make_client(args, raw)
+    env = args.env or (raw.get("flagsmith") or {}).get("environment")
+    if not env:
+        print("no environment: set [flagsmith] environment or --env", file=sys.stderr)
+        return 3
+    result = evaluate(client, env, release)
+    print_result(result)
+    if result.state.value != "cleared":
+        print("REFUSING TO RELEASE: the docket is not CLEARED")
+        return result.exit_code
+    if not args.confirm:
+        print("Would release. Re-run with --confirm to mutate every flag and write the record.")
+        return 0
+
+    signing_key = None
+    if args.sign or release.require_signature:
+        signing_key = os.environ.get("DOCKET_SIGNING_KEY", "")
+        if not signing_key:
+            print("REFUSING TO SIGN: set DOCKET_SIGNING_KEY before release", file=sys.stderr)
+            return 3
+    try:
+        plan = plan_mutations(client, env, result)
+    except (ValueError, ApiError) as e:
+        print(f"REFUSING TO RELEASE: {e}", file=sys.stderr)
+        return 3
+    ship_plan(client, env, plan)
+    data = record(env, result, plan, os.environ.get("DOCKET_ACTOR", os.environ.get("GITHUB_ACTOR", "local")))
+    if signing_key:
+        data = sign_record(data, signing_key)
+    out = Path(args.record or f"docket-release-{release.name}-{int(time.time())}.json")
+    write_record(str(out), data)
+    if args.ledger:
+        try:
+            ledger_append(Path(args.ledger), data)
+        except OSError as e:
+            print(f"WARNING: release succeeded but the ledger append failed: {e}", file=sys.stderr)
+    signed = f", signed {data['signature']['key_id']}" if data.get("signature") else ""
+    print(f"RELEASED {release.name}: {len(plan)} experiment(s), record {out} and {out.with_suffix('.md')}{signed}")
     return 0
 
 
@@ -189,23 +258,31 @@ def cmd_ledger(args, cfg: RuleConfig) -> int:
             print(f"ledger {path} is empty")
             return 0
         for record in records:
-            verdict = record.get("verdict") or {}
-            mutation = record.get("mutation") or {}
             signature = record.get("signature") or {}
-            print(f"{record.get('generated_at', '?')}  experiment {record.get('experiment')}  "
-                  f"{verdict.get('state')}  -> {mutation.get('winner')}  "
-                  f"{signature.get('key_id', 'unsigned')}")
+            if "aggregate" in record:
+                aggregate = record.get("aggregate") or {}
+                print(f"{record.get('generated_at', '?')}  release {record.get('release')}  "
+                      f"{aggregate.get('state')}  {len(record.get('experiments') or [])} experiment(s)  "
+                      f"{signature.get('key_id', 'unsigned')}")
+            else:
+                verdict = record.get("verdict") or {}
+                mutation = record.get("mutation") or {}
+                print(f"{record.get('generated_at', '?')}  experiment {record.get('experiment')}  "
+                      f"{verdict.get('state')}  -> {mutation.get('winner')}  "
+                      f"{signature.get('key_id', 'unsigned')}")
         return 0
-    key = os.environ.get("VERDICT_SIGNING_KEY", "")
+    key = os.environ.get("DOCKET_SIGNING_KEY", "")
     if not key:
-        print("set VERDICT_SIGNING_KEY to verify the ledger", file=sys.stderr)
+        print("set DOCKET_SIGNING_KEY to verify the ledger", file=sys.stderr)
         return 3
     results = ledger_verify_all(records, key)
     bad = 0
     for index, (ok, message) in enumerate(results, start=1):
         record = records[index - 1]
         status = "VALID" if ok else "INVALID"
-        print(f"{index:>3}. {status:7} experiment {record.get('experiment')}: {message}")
+        label = (f"release {record.get('release')}" if "aggregate" in record
+                 else f"experiment {record.get('experiment')}")
+        print(f"{index:>3}. {status:7} {label}: {message}")
         if not ok:
             bad += 1
     print(f"{len(records)} record(s), {bad} invalid")
@@ -225,26 +302,32 @@ def cmd_verify(args, cfg: RuleConfig) -> int:
     if not isinstance(record, dict):
         print(f"{path} does not contain a decision record object", file=sys.stderr)
         return 3
-    key = os.environ.get("VERDICT_SIGNING_KEY", "")
+    key = os.environ.get("DOCKET_SIGNING_KEY", "")
     if not key:
-        print("set VERDICT_SIGNING_KEY to the key used when the record was signed",
+        print("set DOCKET_SIGNING_KEY to the key used when the record was signed",
               file=sys.stderr)
         return 3
     ok, message = verify_record(record, key)
     print(f"DECISION RECORD: {'VALID' if ok else 'INVALID'}")
     print(f"  {message}")
     if ok:
-        verdict = record.get("verdict") or {}
-        print(f"  state {verdict.get('state')} (exit {verdict.get('exit_code')}), "
-              f"experiment {record.get('experiment')}")
-        mutation = record.get("mutation") or {}
-        print(f"  mutation feature {mutation.get('feature')} -> {mutation.get('winner')} "
-              f"at {mutation.get('allocation')}%")
+        if "aggregate" in record:
+            aggregate = record.get("aggregate") or {}
+            print(f"  release {record.get('release')}: {aggregate.get('state')} "
+                  f"(exit {aggregate.get('exit_code')}), "
+                  f"{len(record.get('experiments') or [])} experiment(s)")
+        else:
+            verdict = record.get("verdict") or {}
+            print(f"  state {verdict.get('state')} (exit {verdict.get('exit_code')}), "
+                  f"experiment {record.get('experiment')}")
+            mutation = record.get("mutation") or {}
+            print(f"  mutation feature {mutation.get('feature')} -> {mutation.get('winner')} "
+                  f"at {mutation.get('allocation')}%")
     return 0 if ok else 2
 
 
 def cmd_init(args, cfg: RuleConfig) -> int:
-    default_base = os.environ.get("VERDICT_BASE", "http://localhost:8000")
+    default_base = os.environ.get("DOCKET_BASE", "http://localhost:8000")
     base = args.base or input(f"Flagsmith URL [{default_base}]: ").strip() or default_base
     env = args.env or input("Environment key: ").strip()
     exp_raw = args.experiment if args.experiment is not None else input("Experiment id: ").strip()
@@ -270,11 +353,11 @@ def cmd_init(args, cfg: RuleConfig) -> int:
     if weights:
         pairs = [p.split("=", 1) for p in weights.split(",") if "=" in p]
         lines.append("weights = { " + ", ".join(f"{k.strip()} = {float(v)}" for k, v in pairs) + " }")
-    out = args.out or Path("verdict.toml")
+    out = args.out or Path("docket.toml")
     out.write_text("\n".join(lines) + "\n")
     print(f"wrote {out}")
-    print("next: export VERDICT_TOKEN=<api token> (or VERDICT_EMAIL/VERDICT_PASSWORD), then `verdict audit`")
-    token = os.environ.get("VERDICT_TOKEN")
+    print("next: export DOCKET_TOKEN=<api token> (or DOCKET_EMAIL/DOCKET_PASSWORD), then `docket audit`")
+    token = os.environ.get("DOCKET_TOKEN")
     if token:
         try:
             c = Flagsmith(base=base, token=token)
@@ -287,35 +370,35 @@ def cmd_init(args, cfg: RuleConfig) -> int:
 
 def cmd_report(args, cfg: RuleConfig) -> int:
     client = make_client(args, getattr(args, "_raw", None))
-    checks, verdict = run_audit(client, args.env, args.experiment, cfg,
+    checks, docket = run_audit(client, args.env, args.experiment, cfg,
                                 events_url=args.events_url)
-    if verdict is None:
-        verdict = decide(client.results(args.env, args.experiment), cfg)
+    if docket is None:
+        docket = decide(client.results(args.env, args.experiment), cfg)
     project = args.project or ((getattr(args, "_raw", {}) or {}).get("experiment") or {}).get("project") or 1
-    html_text = render(verdict.to_dict(), [vars(c) for c in checks] if checks else None,
+    html_text = render(docket.to_dict(), [vars(c) for c in checks] if checks else None,
                        args.experiment, args.env,
                        args.dashboard or "http://localhost:8000", project=int(project))
-    out = Path(args.out or f"verdict-{args.experiment}.html")
+    out = Path(args.out or f"docket-{args.experiment}.html")
     out.write_text(html_text)
     print(f"report written: {out.resolve()}")
     return 2 if any(c.status == "block" for c in checks) else 0
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(prog="verdict", description="Experiment lifecycle control for Flagsmith")
-    p.add_argument("--base", help="Flagsmith base URL (default: verdict.toml, $VERDICT_BASE, localhost:8000)")
-    p.add_argument("--token", help="API token (default $VERDICT_TOKEN)")
-    p.add_argument("--config", type=Path, default=Path("verdict.toml"))
-    p.add_argument("--version", action="version", version="verdict 0.1.0")
+    p = argparse.ArgumentParser(prog="docket", description="Experiment lifecycle control for Flagsmith")
+    p.add_argument("--base", help="Flagsmith base URL (default: docket.toml, $DOCKET_BASE, localhost:8000)")
+    p.add_argument("--token", help="API token (default $DOCKET_TOKEN)")
+    p.add_argument("--config", type=Path, default=Path("docket.toml"))
+    p.add_argument("--version", action="version", version="docket 0.1.0")
     sub = p.add_subparsers(dest="command", required=True)
 
     def add_common(sp, need_experiment: bool = True):
-        sp.add_argument("--env", help="environment key (default: verdict.toml)")
+        sp.add_argument("--env", help="environment key (default: docket.toml)")
         if need_experiment:
-            sp.add_argument("--experiment", type=int, help="experiment id (default: verdict.toml)")
+            sp.add_argument("--experiment", type=int, help="experiment id (default: docket.toml)")
         sp.add_argument("--json", action="store_true")
 
-    sp_init = sub.add_parser("init", help="write verdict.toml")
+    sp_init = sub.add_parser("init", help="write docket.toml")
     sp_init.add_argument("--env")
     sp_init.add_argument("--experiment", type=int)
     sp_init.add_argument("--dashboard")
@@ -337,7 +420,7 @@ def main(argv: list[str] | None = None) -> int:
     sp_ship.add_argument("--confirm", action="store_true")
     sp_ship.add_argument("--record", help="path for the decision record")
     sp_ship.add_argument("--sign", action="store_true",
-                         help="sign the decision record with $VERDICT_SIGNING_KEY")
+                         help="sign the decision record with $DOCKET_SIGNING_KEY")
     sp_ship.add_argument("--ledger", help="append the record to an audit ledger (JSONL)")
     sp_ship.set_defaults(func=cmd_ship)
 
@@ -353,6 +436,18 @@ def main(argv: list[str] | None = None) -> int:
     sp_ledger_verify = ledger_sub.add_parser("verify", help="verify every signed record")
     sp_ledger_verify.add_argument("path", type=Path)
     sp_ledger_verify.set_defaults(func=cmd_ledger)
+
+    sp_release = sub.add_parser("release", help="decide a whole release docket")
+    release_sub = sp_release.add_subparsers(dest="action", required=True)
+    sp_release_check = release_sub.add_parser("check", help="gate every experiment in the docket")
+    sp_release_check.add_argument("--json", action="store_true")
+    sp_release_check.set_defaults(func=cmd_release_check)
+    sp_release_ship = release_sub.add_parser("ship", help="release only when the whole docket is cleared")
+    sp_release_ship.add_argument("--confirm", action="store_true")
+    sp_release_ship.add_argument("--record", help="path for the release record")
+    sp_release_ship.add_argument("--sign", action="store_true")
+    sp_release_ship.add_argument("--ledger", help="append the release record to a JSONL ledger")
+    sp_release_ship.set_defaults(func=cmd_release_ship)
 
     sp_report = sub.add_parser("report", help="write a standalone HTML decision report")
     add_common(sp_report)
@@ -371,7 +466,7 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(args, "experiment") and args.experiment is None:
         args.experiment = ex.get("id")
     if args.command in {"audit", "gate", "ship", "report"} and not (args.env and args.experiment):
-        p.error("--env and --experiment are required (or provide them in verdict.toml)")
+        p.error("--env and --experiment are required (or provide them in docket.toml)")
     try:
         return args.func(args, cfg)
     except ApiError as e:

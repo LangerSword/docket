@@ -5,7 +5,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 
 from .client import ApiError, Flagsmith
-from .rules import RuleConfig, Verdict, decide, weights_from_experiment
+from .rules import RuleConfig, Decision, decide, weights_from_experiment
 
 
 @dataclass
@@ -51,7 +51,7 @@ def _metric_events(client: Flagsmith, env_key: str, exp: dict) -> dict[int, str]
 
 
 def run_audit(client: Flagsmith, env_key: str, experiment_id: int,
-              cfg: RuleConfig | None = None, events_url: str | None = None) -> tuple[list[Check], Verdict | None]:
+              cfg: RuleConfig | None = None, events_url: str | None = None) -> tuple[list[Check], Decision | None]:
     cfg = cfg or RuleConfig()
     checks: list[Check] = []
 
@@ -167,12 +167,12 @@ def run_audit(client: Flagsmith, env_key: str, experiment_id: int,
         checks.append(Check("events url", "pass" if ok else "block", detail, fix))
 
     # 6. live data checks
-    verdict = None
+    docket = None
     try:
         if not cfg.weights:
             cfg = replace(cfg, weights=weights_from_experiment(exp))
         payload = client.results(env_key, experiment_id)
-        verdict = decide(payload, cfg)
+        docket = decide(payload, cfg)
         age = _age_minutes((payload.get("results") or {}).get("as_of"))
         if age is None:
             checks.append(Check("results", "warn", "no results computed yet", "refresh results, then retry in a few seconds"))
@@ -182,31 +182,31 @@ def run_audit(client: Flagsmith, env_key: str, experiment_id: int,
         else:
             checks.append(Check("results", "pass", f"results as of {age:.0f} min ago"))
 
-        arm_n = {k: a.n for k, a in verdict.arms.items()}
+        arm_n = {k: a.n for k, a in docket.arms.items()}
         if arm_n:
             dead = [k for k, n in arm_n.items() if n == 0]
             checks.append(Check("traffic both arms", "block" if dead else "pass",
                                 f"exposures per arm: {arm_n}" + (f" (dead: {dead})" if dead else ""),
                                 "a dead arm is a wiring bug: check assignment and identifiers"))
-            flat = [k for k, a in verdict.arms.items() if a.n >= cfg.n_min and a.total == 0]
+            flat = [k for k, a in docket.arms.items() if a.n >= cfg.n_min and a.total == 0]
             if flat:
                 checks.append(Check("conversions", "warn",
                                     f"no conversions on {flat} despite n >= {cfg.n_min}",
                                     "the conversion event is not firing or uses a different identifier"))
-            elif verdict.arms:
+            elif docket.arms:
                 checks.append(Check("conversions", "pass", "conversions recorded on every arm with enough traffic"))
-            if verdict.srm_p is not None:
-                status = "block" if verdict.srm_p < cfg.srm_alpha else "pass"
+            if docket.srm_p is not None:
+                status = "block" if docket.srm_p < cfg.srm_alpha else "pass"
                 checks.append(Check("sample ratio", status,
-                                    f"chi-square p={verdict.srm_p:.3g} against configured split",
+                                    f"chi-square p={docket.srm_p:.3g} against configured split",
                                     "" if status == "pass" else "do not act on results; investigate the split"))
             elif cfg.weights:
                 checks.append(Check("sample ratio", "warn", "split weights unknown, SRM not computable",
-                                    "put configured weights in verdict.toml"))
+                                    "put configured weights in docket.toml"))
     except (ApiError, ValueError) as e:
         checks.append(Check("results", "warn", f"could not read results: {e}", "check the experiment id"))
 
-    return checks, verdict
+    return checks, docket
 
 
 def summarise(checks: list[Check]) -> str:

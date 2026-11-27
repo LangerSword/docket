@@ -90,13 +90,13 @@ def ensure_admin() -> None:
          "flagsmith", "shell", "-c", snippet])
 
 
-def verdict(args: list[str], config: Path) -> int:
-    command = [sys.executable, "-m", "verdict.cli", "--config", str(config), *args]
+def docket(args: list[str], config: Path) -> int:
+    command = [sys.executable, "-m", "docket.cli", "--config", str(config), *args]
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
-    env.setdefault("VERDICT_EMAIL", EMAIL)
-    env.setdefault("VERDICT_PASSWORD", PASSWORD)
-    print(f"\n$ verdict {' '.join(args)}  (config {config.relative_to(ROOT)})", flush=True)
+    env.setdefault("DOCKET_EMAIL", EMAIL)
+    env.setdefault("DOCKET_PASSWORD", PASSWORD)
+    print(f"\n$ docket {' '.join(args)}  (config {config.relative_to(ROOT)})", flush=True)
     return subprocess.run(command, cwd=ROOT, env=env).returncode
 
 
@@ -146,7 +146,7 @@ def refresh(experiment: int, token: str) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run the Verdict demo end to end")
+    parser = argparse.ArgumentParser(description="Run the Docket demo end to end")
     parser.add_argument("--staged", action="store_true")
     parser.add_argument("--skip-express", action="store_true")
     parser.add_argument("--sessions", type=int, default=1600)
@@ -175,8 +175,8 @@ def main(argv: list[str] | None = None) -> int:
         print("\n-- stage 1: a small cohort, so the gate must refuse to call it --")
         load("/", 80, 0.09, 0.20, 0.02, 0.02, seed=11)
         refresh(checkout, token)
-        verdict(["audit", "--events-url", BASE + "/api"], ROOT / "demo" / "verdict.toml")
-        verdict(["gate"], ROOT / "demo" / "verdict.toml")
+        docket(["audit", "--events-url", BASE + "/api"], ROOT / "demo" / "docket.toml")
+        docket(["gate"], ROOT / "demo" / "docket.toml")
         print("\n-- stage 2: the rest of the traffic --")
         load("/", max(1, args.sessions - 80), 0.09, 0.20, 0.02, 0.02, seed=12)
         refresh(checkout, token)
@@ -185,24 +185,24 @@ def main(argv: list[str] | None = None) -> int:
         refresh(checkout, token)
 
     print("\n== checkout experiment ==")
-    verdict(["audit", "--events-url", BASE + "/api"], ROOT / "demo" / "verdict.toml")
-    verdict(["gate"], ROOT / "demo" / "verdict.toml")
+    docket(["audit", "--events-url", BASE + "/api"], ROOT / "demo" / "docket.toml")
+    docket(["gate"], ROOT / "demo" / "docket.toml")
 
     if not args.skip_express:
         load("/express", args.sessions, 0.09, 0.20, 0.02, 0.10, seed=21)
         refresh(express, token)
         print("\n== guardrail experiment (one-tap checkout looks great, refunds regress) ==")
-        verdict(["audit", "--events-url", BASE + "/api"], ROOT / "demo" / "verdict.express.toml")
-        verdict(["gate"], ROOT / "demo" / "verdict.express.toml")
+        docket(["audit", "--events-url", BASE + "/api"], ROOT / "demo" / "docket.express.toml")
+        docket(["gate"], ROOT / "demo" / "docket.express.toml")
 
     print("\n== deliberately broken wiring ==")
-    verdict(["audit", "--events-url", "https://events.api.flagsmith.com/api"],
-            ROOT / "demo" / "verdict.broken.toml")
+    docket(["audit", "--events-url", "https://events.api.flagsmith.com/api"],
+            ROOT / "demo" / "docket.broken.toml")
 
     print(f"""
 Done. The gate is a decision, not a dashboard: `ship` is still yours to give.
 
-  verdict --config demo/verdict.toml ship --confirm --record demo/decision.json
+  docket --config demo/docket.toml ship --confirm --record demo/decision.json
   open http://localhost:8000  (admin@demo.local / demo-password)
   open {SHOP}  (two variants: / and /express)
 """)

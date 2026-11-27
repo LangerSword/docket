@@ -1,15 +1,15 @@
-# Verdict
+# Docket
 
 **Release gates for Flagsmith experiments.** Audit the wiring, refuse to ship on
 noise, and roll the winner out with a decision record that says why.
 
-Flagsmith tells you a win probability. Verdict tells you whether you are
+Flagsmith tells you a win probability. Docket tells you whether you are
 *allowed to ship*, and refuses with the numbers when you are not.
 
 ```
-$ verdict gate
+$ docket gate
 
-VERDICT: INCONCLUSIVE  (exit 1)
+DECISION: INCONCLUSIVE  (exit 1)
   leading variant: red
   - red: lift +17.6%, 95% interval [-52.6%, +87.9%], chance to win 68.9%
   - interval still crosses zero; not enough traffic to call it
@@ -19,7 +19,7 @@ VERDICT: INCONCLUSIVE  (exit 1)
 Built for **Toggle Wars, Track 03** (build on open-source Flagsmith), November 2026.
 MIT.
 
-[Product site](https://langersword.github.io/verdict/) · [Demo video](https://github.com/LangerSword/verdict/releases/download/demo-v1/verdict-demo.mp4) · [Roadmap](ROADMAP.md)
+[Product site](https://langersword.github.io/docket/) · [Demo video](https://github.com/LangerSword/docket/releases/download/demo-v1/docket-demo.mp4) · [Roadmap](ROADMAP.md)
 
 ## The problem
 
@@ -36,19 +36,38 @@ whoever is awake. That fails in three documented ways:
 3. **The decision evaporates.** Nothing records who shipped what, on which numbers,
    with which flag mutation.
 
-Verdict closes all three on self-hosted Flagsmith: one small binary and one
+Docket closes all three on self-hosted Flagsmith: one small binary and one
 GitHub Action.
 
 ## What it does
 
 | Command | What happens |
 |---|---|
-| `verdict audit` | Checks the experiment's wiring before you trust a number: warehouse connected, rollout live, every variation keyed, control identifiable, every metric event present in the warehouse, events URL pointed at your instance, both arms receiving traffic, conversions firing, sample ratio sane. Each failure prints the fix. |
-| `verdict gate` | Reads the experiment's own results and returns one of seven states with the numbers that produced it. Exit `0` is the only value that allows a release. |
-| `verdict ship --confirm` | Only runs on `WINNER`: completes the experiment, writes the winning variation to 100%, and emits a JSON + Markdown decision record with the statistics and the exact flag mutation. Refuses a completed experiment. Add `--sign` to attest the record. |
-| `verdict verify` | Checks a signed decision record against `$VERDICT_SIGNING_KEY`; any edit to a lift, interval, experiment id or flag mutation invalidates it. |
-| `verdict ledger list\|verify` | Appends decisions to a JSONL ledger and verifies every signed record offline. |
-| `verdict report` | Writes one standalone HTML file you can attach to a PR: state, interval, arms, audit table, deep link into Flagsmith. |
+| `docket audit` | Checks the experiment's wiring before you trust a number: warehouse connected, rollout live, every variation keyed, control identifiable, every metric event present in the warehouse, events URL pointed at your instance, both arms receiving traffic, conversions firing, sample ratio sane. Each failure prints the fix. |
+| `docket gate` | Reads the experiment's own results and returns one of seven states with the numbers that produced it. Exit `0` is the only value that allows a release. |
+| `docket ship --confirm` | Only runs on `WINNER`: completes the experiment, writes the winning variation to 100%, and emits a JSON + Markdown decision record with the statistics and the exact flag mutation. Refuses a completed experiment. Add `--sign` to attest the record. |
+| `docket verify` | Checks a signed decision record against `$DOCKET_SIGNING_KEY`; any edit to a lift, interval, experiment id or flag mutation invalidates it. |
+| `docket release check\|ship` | Reads a `docket.release.toml` docket of experiments, audits every case, and refuses the whole release if any case is broken, losing or guardrailed. `ship` mutates every winner only when the docket is `cleared`, and writes one signed release record. |
+| `docket ledger list\|verify` | Appends decisions to a JSONL ledger and verifies every signed record offline. |
+| `docket report` | Writes one standalone HTML file you can attach to a PR: state, interval, arms, audit table, deep link into Flagsmith. |
+
+### Release dockets
+
+One experiment is not a release. `docket release` reads a `docket.release.toml`
+docket, audits and gates every experiment in it, and aggregates the result:
+
+```
+$ docket --config demo/docket.release.toml release check
+RELEASE: BLOCKED  (exit 2)  demo-release
+  experiment 10 (checkout CTA): winner, leading red
+  experiment 11 (express checkout): guardrail, leading red
+    - guardrail metric refund_requested moved the wrong way: [+156.8%, +665.9%] vs tolerance 0.0%
+```
+
+`release ship` runs only when the aggregate is `cleared`. It pre-validates every
+experiment before writing anything, then completes each experiment, writes each
+winner to 100%, and produces one signed release record and ledger entry. A
+guardrail refusal on any case blocks the whole release.
 
 ### The seven states
 
@@ -71,7 +90,7 @@ the numbers that produced it.
 
 ## Demo video
 
-A two-minute walkthrough lives in the [demo-v1 release](https://github.com/LangerSword/verdict/releases/download/demo-v1/verdict-demo.mp4)
+A two-minute walkthrough lives in the [demo-v1 release](https://github.com/LangerSword/docket/releases/download/demo-v1/docket-demo.mp4)
 (1080p MP4, 6.3 MB): the audit catches three silent wiring failures, a guardrail
 run refuses a 99% winner, the checkout experiment is gated and shipped, and the
 Flagsmith side shows the feature state move to 100%.
@@ -84,8 +103,8 @@ conversion, statistic and flag mutation is real self-hosted Flagsmith.
 Requirements: Docker with Compose, Python 3.11+.
 
 ```bash
-git clone https://github.com/LangerSword/verdict
-cd verdict
+git clone https://github.com/LangerSword/docket
+cd docket
 make demo          # or: python3 demo/demo.py
 ```
 
@@ -103,21 +122,21 @@ shop, so give it a few minutes.
    Flagsmith Python SDK;
 4. drives 1,600 simulated shoppers through each experiment, flushes the SDK's
    event buffer, and refreshes the statistics;
-5. runs `audit` and `gate` for you and prints the verdicts.
+5. runs `audit` and `gate` for you and prints the dockets.
 
 What you should see, in order:
 
-- the checkout experiment: **12/12 audit checks pass**, then `VERDICT: WINNER`
+- the checkout experiment: **12/12 audit checks pass**, then `DECISION: WINNER`
   with an interval that excludes zero;
 - the express-checkout experiment: the primary metric wins, but the refund
-  guardrail regressed, so `VERDICT: GUARDRAIL` and exit `2`;
+  guardrail regressed, so `DECISION: GUARDRAIL` and exit `2`;
 - the broken fixture: **three blocks** — a keyless variation, a metric event that
   never arrived, and an events URL pointing at Flagsmith Cloud.
 
 `ship` is deliberately **not** automatic:
 
 ```bash
-verdict --config demo/verdict.toml ship --confirm --record demo/decision.json
+docket --config demo/docket.toml ship --confirm --record demo/decision.json
 ```
 
 Open `http://localhost:8000` (admin `admin@demo.local`, password `demo-password`)
@@ -133,17 +152,17 @@ result-refresh throttle before the winner.
 
 <img src="docs/shop-control.png" width="49%" alt="Shop, control variant"> <img src="docs/shop-red.png" width="49%" alt="Shop, treatment variant">
 
-<p align="center"><img src="docs/report.png" width="720" alt="Verdict HTML report"></p>
+<p align="center"><img src="docs/report.png" width="720" alt="Docket HTML report"></p>
 
 ## How Flagsmith is used
 
-This is not a dashboard or a wrapper around one GET. Verdict is the release
+This is not a dashboard or a wrapper around one GET. Docket is the release
 control for a Flagsmith experiment:
 
 - **Experiment results are the decision input.** `GET
   /api/v1/environments/{env}/experiments/{id}/results/` returns per-variant
   sufficient statistics, relative lift, the credible interval, win probability,
-  exposure timeseries and SRM. Verdict pre-registers the decision rule and only
+  exposure timeseries and SRM. Docket pre-registers the decision rule and only
   allows a release when those numbers clear it. Delete Flagsmith and there is
   nothing to decide.
 - **The experiment's wiring is audited through Flagsmith's own objects:** warehouse
@@ -159,31 +178,31 @@ control for a Flagsmith experiment:
 
 Free OSS Flagsmith has no change-request or approval workflow — `POST
 .../create-change-request/` returns `405` on the free image, and scheduled changes
-are paid-only. Verdict gives the free tier the one thing it lacks for real
+are paid-only. Docket gives the free tier the one thing it lacks for real
 experiment-driven releases: a defensible yes or no, and a record.
 
 ## Use it against your own instance
 
 ```bash
-pipx install "git+https://github.com/LangerSword/verdict"
+pipx install "git+https://github.com/LangerSword/docket"
 # or
-pip install "git+https://github.com/LangerSword/verdict"
+pip install "git+https://github.com/LangerSword/docket"
 
-export VERDICT_TOKEN=<API token from your Flagsmith user>
-verdict init            # asks three questions, verifies the connection, writes verdict.toml
-verdict audit           # check the wiring before trusting a number
-verdict gate            # the decision, with exit codes for CI
-verdict ship --confirm  # refuses unless the verdict is WINNER
-verdict report          # standalone HTML
+export DOCKET_TOKEN=<API token from your Flagsmith user>
+docket init            # asks three questions, verifies the connection, writes docket.toml
+docket audit           # check the wiring before trusting a number
+docket gate            # the decision, with exit codes for CI
+docket ship --confirm  # refuses unless the docket is WINNER
+docket report          # standalone HTML
 ```
 
-`VERDICT_TOKEN` is read from the environment; the tool never writes a secret to
-disk. `VERDICT_EMAIL` / `VERDICT_PASSWORD` work as an alternative for local use.
+`DOCKET_TOKEN` is read from the environment; the tool never writes a secret to
+disk. `DOCKET_EMAIL` / `DOCKET_PASSWORD` work as an alternative for local use.
 Python 3.11+; no runtime dependencies outside the standard library.
 
 ### Configuration
 
-`verdict init` writes `verdict.toml`. Edit it by hand at any time:
+`docket init` writes `docket.toml`. Edit it by hand at any time:
 
 ```toml
 [flagsmith]
@@ -215,7 +234,7 @@ metric id. An unmeasured guardrail is never treated as a pass.
 ### Results are snapshots, not a live query
 
 Flagsmith computes experiment statistics asynchronously and throttles refreshes
-to once per five minutes. Verdict treats the stored payload as a snapshot keyed
+to once per five minutes. Docket treats the stored payload as a snapshot keyed
 by `as_of` and never pretends otherwise. The audit warns when a snapshot is older
 than 30 minutes. There is deliberately no polling loop in the gate.
 
@@ -230,11 +249,11 @@ permissions:
   pull-requests: write
 
 jobs:
-  verdict:
+  docket:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: LangerSword/verdict/action@v1
+      - uses: LangerSword/docket/action@v1
         with:
           base: ${{ secrets.FLAGSMITH_BASE }}
           token: ${{ secrets.FLAGSMITH_TOKEN }}
@@ -244,7 +263,7 @@ jobs:
 ```
 
 The composite action installs the package, runs the audit, gates the release,
-fails the job on anything that is not `winner`, and comments the verdict on the
+fails the job on anything that is not `winner`, and comments the docket on the
 pull request. The gate's exit code is the required status.
 
 ## Signed decision records
@@ -254,11 +273,11 @@ signing key, `ship` writes an HMAC-SHA256 attestation over every field except th
 signature itself:
 
 ```bash
-export VERDICT_SIGNING_KEY="$(openssl rand -hex 32)"
-verdict ship --confirm --sign --record demo/decision.json --ledger demo/ledger.jsonl
-verdict verify demo/decision.json
-verdict ledger list demo/ledger.jsonl
-verdict ledger verify demo/ledger.jsonl
+export DOCKET_SIGNING_KEY="$(openssl rand -hex 32)"
+docket ship --confirm --sign --record demo/decision.json --ledger demo/ledger.jsonl
+docket verify demo/decision.json
+docket ledger list demo/ledger.jsonl
+docket ledger verify demo/ledger.jsonl
 # DECISION RECORD: VALID
 #   valid hmac-sha256 signature, key 4f9c2a1b8e77
 #   state winner (exit 0), experiment 10
@@ -275,17 +294,18 @@ decision was made on those exact numbers.
 One Python package, five modules, stdlib HTTP:
 
 ```
-verdict/
+docket/
   client.py   Flagsmith API client: auth, results, warehouse, feature states
   rules.py    pure decision engine: seven states, SRM, guardrails, intervals
   checks.py   audit catalog, each check returns pass/warn/block with a fix
   attest.py   HMAC-SHA256 signing and verification of decision records
   ledger.py   append-only JSONL ledger; offline verification of every decision
+  release.py  release dockets: aggregate decisions over several experiments
   report.py   human, JSON and standalone HTML output
-  cli.py      audit | gate | ship | verify | ledger | report
+  cli.py      audit | gate | ship | release | verify | ledger | report
 demo/         sample shop, seeder, traffic driver, one-command orchestrator
 action/       composite GitHub Action
-tests/        41 engine, audit, attestation, ledger and fixture tests
+tests/        50 engine, audit, release, attestation, ledger and fixture tests
 ```
 
 The engine is pure and testable without network: typed errors map to exit codes,
@@ -298,7 +318,7 @@ python3 -m pytest tests -q
 
 ## Where this goes
 
-Verdict is the gate today. The gap underneath it is bigger: feature flags made
+Docket is the gate today. The gap underneath it is bigger: feature flags made
 releases continuous, but nobody owns the **release decision** — evidence,
 policy, mutation and an audit trail in one place. The roadmap is a release
 decision layer: signed decision records and a local release ledger (shipped), then a post-ship

@@ -1,4 +1,4 @@
-name: Verdict
+name: Docket
 description: Audit a Flagsmith experiment's wiring and gate the release on its statistics.
 branding:
   icon: shield
@@ -23,9 +23,9 @@ inputs:
     required: false
     default: ""
   config:
-    description: Path to verdict.toml
+    description: Path to docket.toml
     required: false
-    default: verdict.toml
+    default: docket.toml
 
 runs:
   using: composite
@@ -35,7 +35,7 @@ runs:
       with:
         python-version: "3.12"
 
-    - name: Install verdict
+    - name: Install docket
       shell: bash
       run: pip install --quiet "${{ github.action_path }}/.."
 
@@ -43,32 +43,32 @@ runs:
       id: audit
       shell: bash
       env:
-        VERDICT_TOKEN: ${{ inputs.token }}
-        VERDICT_BASE: ${{ inputs.base }}
+        DOCKET_TOKEN: ${{ inputs.token }}
+        DOCKET_BASE: ${{ inputs.base }}
         EVENTS_URL: ${{ inputs.events-url }}
       run: |
         args=(--env "${{ inputs.env }}" --experiment "${{ inputs.experiment }}")
         if [ -n "$EVENTS_URL" ]; then args+=(--events-url "$EVENTS_URL"); fi
         set +e
-        verdict --config "${{ inputs.config }}" audit "${args[@]}" | tee audit.txt
+        docket --config "${{ inputs.config }}" audit "${args[@]}" | tee audit.txt
         code=${PIPESTATUS[0]}
         echo "code=$code" >> "$GITHUB_OUTPUT"
 
     - name: Gate the release
       shell: bash
       env:
-        VERDICT_TOKEN: ${{ inputs.token }}
-        VERDICT_BASE: ${{ inputs.base }}
-        VERDICT_ACTOR: ${{ github.actor }}
+        DOCKET_TOKEN: ${{ inputs.token }}
+        DOCKET_BASE: ${{ inputs.base }}
+        DOCKET_ACTOR: ${{ github.actor }}
       run: |
         set +e
-        verdict --config "${{ inputs.config }}" gate \
+        docket --config "${{ inputs.config }}" gate \
           --env "${{ inputs.env }}" --experiment "${{ inputs.experiment }}" --json \
-          > verdict.json
+          > docket.json
         code=$?
-        verdict --config "${{ inputs.config }}" gate \
-          --env "${{ inputs.env }}" --experiment "${{ inputs.experiment }}" > verdict.txt || true
-        cat verdict.txt
+        docket --config "${{ inputs.config }}" gate \
+          --env "${{ inputs.env }}" --experiment "${{ inputs.experiment }}" > docket.txt || true
+        cat docket.txt
         exit $code
 
     - name: Comment on the pull request
@@ -78,9 +78,9 @@ runs:
         GH_TOKEN: ${{ github.token }}
       run: |
         {
-          echo "### Verdict"
+          echo "### Docket"
           echo '```'
-          cat verdict.txt 2>/dev/null || echo "gate did not produce output"
+          cat docket.txt 2>/dev/null || echo "gate did not produce output"
           echo '```'
           if [ -s audit.txt ]; then
             echo "<details><summary>Wiring audit</summary>"

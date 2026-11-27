@@ -1,26 +1,26 @@
 @font-face {
-  font-family: "Verdict Sans";
+  font-family: "Docket Sans";
   src: url("fonts/noto-sans-regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: "Verdict Sans";
+  font-family: "Docket Sans";
   src: url("fonts/noto-sans-medium.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: "Verdict Sans";
+  font-family: "Docket Sans";
   src: url("fonts/noto-sans-bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: "Verdict Mono";
+  font-family: "Docket Mono";
   src: url("fonts/jetbrains-mono-regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
@@ -44,8 +44,8 @@
   --amber: #f0c25a;
   --red: #f06a5e;
   --radius: 2px;
-  --sans: "Verdict Sans", "Noto Sans", system-ui, sans-serif;
-  --mono: "Verdict Mono", "JetBrains Mono", ui-monospace, monospace;
+  --sans: "Docket Sans", "Noto Sans", system-ui, sans-serif;
+  --mono: "Docket Mono", "JetBrains Mono", ui-monospace, monospace;
   --wrap: 1320px;
 }
 

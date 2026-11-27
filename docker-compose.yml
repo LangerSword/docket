@@ -1,4 +1,4 @@
-# Verdict demo stack: self-hosted Flagsmith + a sample shop instrumented with
+# Docket demo stack: self-hosted Flagsmith + a sample shop instrumented with
 # the real Flagsmith Python SDK. Start it with `make demo` or:
 #
 #   docker compose up -d
@@ -8,7 +8,7 @@
 # Flagsmith UI: http://localhost:8000  (admin@demo.local / demo-password)
 # Demo shop:    http://localhost:8080
 
-name: verdict
+name: docket
 
 x-flagsmith-env: &flagsmith-env
   DATABASE_URL: postgresql://postgres:password@postgres:5432/flagsmith
@@ -16,8 +16,8 @@ x-flagsmith-env: &flagsmith-env
   ENVIRONMENT: production
   DJANGO_ALLOWED_HOSTS: "*"
   FLAGSMITH_DOMAIN: localhost:8000
-  DJANGO_SECRET_KEY: verdict-demo-only-not-a-secret
-  WAREHOUSE_CREDENTIALS_SECRET: verdict-demo-only-not-a-secret
+  DJANGO_SECRET_KEY: docket-demo-only-not-a-secret
+  WAREHOUSE_CREDENTIALS_SECRET: docket-demo-only-not-a-secret
   TASK_RUN_METHOD: TASK_PROCESSOR
   EXPERIMENTATION_ENABLED: "true"
 

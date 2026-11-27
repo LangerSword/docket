@@ -6,7 +6,7 @@ import math
 import unittest
 from pathlib import Path
 
-from verdict.rules import (State, RuleConfig, chi_square_p, decide,
+from docket.rules import (State, RuleConfig, chi_square_p, decide,
                            weights_from_experiment)
 
 FIX = Path(__file__).parent / "fixtures"
@@ -165,7 +165,7 @@ class StateTest(unittest.TestCase):
             State.WINNER: 0, State.COLLECTING: 1, State.INCONCLUSIVE: 1,
             State.BROKEN: 2, State.LOSING: 2, State.GUARDRAIL: 2, State.UNREACHABLE: 3,
         }
-        from verdict.rules import EXIT_CODES
+        from docket.rules import EXIT_CODES
         self.assertEqual(EXIT_CODES, pairs)
 
 

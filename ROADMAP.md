@@ -1,4 +1,4 @@
-# Verdict roadmap
+# Docket roadmap
 
 ## The thesis
 
@@ -16,24 +16,28 @@ The gap is not another dashboard. It is an open decision layer for releases:
 
 Enterprises buy pieces of this from closed platforms. Open-source teams
 self-hosting Flagsmith, Unleash or OpenFeature have flags and statistics, but no
-decision layer. That is the gap Verdict is built to fill.
+decision layer. That is the gap Docket is built to fill.
 
 ## What exists today
 
-- `verdict audit` — pre-flight wiring checks: warehouse, rollout, variation
+- `docket audit` — pre-flight wiring checks: warehouse, rollout, variation
   keys, control value, metric events, events URL, dead arms, conversions, SRM.
-- `verdict gate` — seven-state decision engine with sample floors, SRM,
+- `docket gate` — seven-state decision engine with sample floors, SRM,
   credible intervals and guardrail enforcement. Exit 0 is the only yes.
-- `verdict ship` — completes the experiment, writes the winning variation to
+- `docket ship` — completes the experiment, writes the winning variation to
   100%, and writes a JSON + Markdown decision record. `--confirm` is required.
-- `verdict verify` — HMAC-SHA256 attestation; any edit to the record invalidates
+- `docket verify` — HMAC-SHA256 attestation; any edit to the record invalidates
   it.
-- `verdict ledger list|verify` — append decisions to a JSONL ledger and verify
+- `docket ledger list|verify` — append decisions to a JSONL ledger and verify
   every signed record offline.
+- `docket release check|ship` — aggregate several experiments into one release
+  docket, pre-validate every mutation, and sign one release record.
 - A one-command self-hosted demo, a real Python SDK sample app, a GitHub Action,
   and tests that run without network.
 
-This is the first vertical slice: evidence → decision → mutation → record.
+This is the first vertical slice: evidence → decision → mutation → record. A
+release docket groups several experiments into one decision, so the unit of
+release matches how teams actually ship.
 
 ## Phase 1 — Release guard (next)
 
@@ -48,7 +52,7 @@ happens after `ship`:
 
 Technical shape:
 
-- a `verdict guard` command with `--once` for CI/cron and a `--watch` loop for a
+- a `docket guard` command with `--once` for CI/cron and a `--watch` loop for a
   long-running process;
 - provider adapters for post-release metrics, because Flagsmith freezes
   experiment results when an experiment completes;
@@ -65,7 +69,7 @@ A decision record is only evidence if it is durable and queryable.
 
 - append-only ledger of signed decision records, keyed by experiment, feature,
   environment, commit and deploy (local JSONL shipped; remote next);
-- `verdict ledger list|verify` with JSON output for CI and auditors;
+- `docket ledger list|verify` with JSON output for CI and auditors;
 - attach the record to the pull request and the deploy automatically;
 - export to an object store or a warehouse; verify offline with the signing key.
 
@@ -127,7 +131,7 @@ This is the 2026 shape: agents do the work, humans own the consequences.
 4. **Never auto-ship without an explicit human or a pre-declared bounded policy.**
 5. **Prefer composition over a platform.** One CLI, one Action, one compose file;
    integrate with the tools teams already run.
-6. **Be honest about snapshots.** Flagsmith throttles result refreshes; Verdict
+6. **Be honest about snapshots.** Flagsmith throttles result refreshes; Docket
    treats results as snapshots keyed by `as_of`, never as live data.
 
 ## Non-goals
@@ -140,8 +144,8 @@ This is the 2026 shape: agents do the work, humans own the consequences.
 
 ## 30-day plan
 
-- Week 1: ledger schema, signed records in CI, `verdict ledger`.
-- Week 2: `verdict guard --once` and rollback policy for Flagsmith; a real
+- Week 1: ledger schema, signed records in CI, `docket ledger`.
+- Week 2: `docket guard --once` and rollback policy for Flagsmith; a real
   post-release metric source.
 - Week 3: policy-as-code, OpenFeature provider interface, one second adapter.
 - Week 4: three design partners on self-hosted Flagsmith; a case study with a
@@ -155,5 +159,5 @@ the number of teams that keep the gate in CI after a month.
 
 The repo is MIT. The most useful contributions right now are provider adapters,
 post-release metric sources, and adversarial tests for the decision engine. If
-you run self-hosted Flagsmith and have an experiment that Verdict gets wrong,
+you run self-hosted Flagsmith and have an experiment that Docket gets wrong,
 open an issue with the payload; that is the highest-value bug report.

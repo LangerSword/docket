@@ -5,7 +5,7 @@ exposure event with the variant key the SDK resolved, and every purchase or
 refund records a conversion event with the same identifier. Nothing about the
 experiment is faked here: Flagsmith assigns the variant and owns the numbers.
 
-This app is a fixture for the Verdict walkthrough, not part of the tool.
+This app is a fixture for the Docket walkthrough, not part of the tool.
 """
 from __future__ import annotations
 
@@ -173,7 +173,7 @@ def page_html(page_key: str, variant: str) -> bytes:
     <p class="note">Variant <code>{variant}</code> served by Flagsmith flag <code>{page['flag']}</code>.</p>
   </section>
 </main>
-<footer>Demo shop for the Verdict walkthrough. Every page view, purchase and refund
+<footer>Demo shop for the Docket walkthrough. Every page view, purchase and refund
 is a real Flagsmith SDK event; the flag owns the variant.</footer>
 </body></html>""".encode()
 
@@ -187,7 +187,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _identity(self) -> tuple[str, bool]:
         cookie = SimpleCookie(self.headers.get("Cookie") or "")
-        morsel = cookie.get("verdict_id")
+        morsel = cookie.get("docket_id")
         if morsel and morsel.value:
             return morsel.value, False
         return uuid.uuid4().hex, True
@@ -236,7 +236,7 @@ class Handler(BaseHTTPRequestHandler):
             record_exposure(identifier, PAGES[key]["flag"], variant)
         except Exception as exc:  # noqa: BLE001 - a shop page must still render
             print(f"flag evaluation failed for {identifier[:8]}: {exc}")
-        cookie = f"verdict_id={identifier}; Path=/; HttpOnly; SameSite=Lax" if new else None
+        cookie = f"docket_id={identifier}; Path=/; HttpOnly; SameSite=Lax" if new else None
         self._send(200, page_html(key, variant), "text/html; charset=utf-8", cookie)
 
     def do_POST(self) -> None:
@@ -245,7 +245,7 @@ class Handler(BaseHTTPRequestHandler):
         if length:
             self.rfile.read(length)
         identifier, new = self._identity()
-        cookie = f"verdict_id={identifier}; Path=/; HttpOnly; SameSite=Lax" if new else None
+        cookie = f"docket_id={identifier}; Path=/; HttpOnly; SameSite=Lax" if new else None
         if parsed.path == "/buy":
             record_conversion(PURCHASE_EVENT, identifier)
             self._json(200, {"ok": True, "event": PURCHASE_EVENT, "identifier": identifier}, cookie)

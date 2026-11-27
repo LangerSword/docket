@@ -10,13 +10,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from verdict.attest import sign_record
-from verdict.cli import main
-from verdict.ledger import append, read, verify_all
+from docket.attest import sign_record
+from docket.cli import main
+from docket.ledger import append, read, verify_all
 
 KEY = "ledger-test-key"
 RECORD = {
-    "tool": "verdict",
+    "tool": "docket",
     "generated_at": "2026-11-27T12:00:00Z",
     "experiment": 4,
     "verdict": {"state": "winner", "exit_code": 0},
@@ -36,7 +36,7 @@ class LedgerTest(unittest.TestCase):
             self.assertIn("signature", records[1])
 
     def test_missing_ledger_is_empty(self):
-        self.assertEqual(read(Path("/tmp/does-not-exist-verdict-ledger.jsonl")), [])
+        self.assertEqual(read(Path("/tmp/does-not-exist-docket-ledger.jsonl")), [])
 
     def test_invalid_line_raises(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -71,7 +71,7 @@ class LedgerCliTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = self._write(tmp)
             out = io.StringIO()
-            with patch.dict(os.environ, {"VERDICT_SIGNING_KEY": KEY}, clear=False):
+            with patch.dict(os.environ, {"DOCKET_SIGNING_KEY": KEY}, clear=False):
                 with contextlib.redirect_stdout(out):
                     code = main(["ledger", "verify", str(path)])
             self.assertEqual(code, 0)
@@ -84,7 +84,7 @@ class LedgerCliTest(unittest.TestCase):
             bad["mutation"]["allocation"] = 10
             path.write_text(json.dumps(bad) + "\n")
             out = io.StringIO()
-            with patch.dict(os.environ, {"VERDICT_SIGNING_KEY": KEY}, clear=False):
+            with patch.dict(os.environ, {"DOCKET_SIGNING_KEY": KEY}, clear=False):
                 with contextlib.redirect_stdout(out):
                     code = main(["ledger", "verify", str(path)])
             self.assertEqual(code, 2)

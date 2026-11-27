@@ -65,13 +65,13 @@ def ensure_project(token: str) -> tuple[int, str, dict]:
         status, orgs = call("GET", "/organisations/?page_size=100", token=token)
         orgs = unwrap(orgs)
         if not orgs:
-            status, org = call("POST", "/organisations/", {"name": "Verdict Demo"}, token=token)
+            status, org = call("POST", "/organisations/", {"name": "Docket Demo"}, token=token)
             if status not in (200, 201):
                 raise SystemExit(f"cannot create organisation: {status} {org}")
             org_id = org["id"]
         else:
             org_id = orgs[0]["id"]
-        status, project = call("POST", "/projects/", {"name": "Verdict Demo", "organisation": org_id}, token=token)
+        status, project = call("POST", "/projects/", {"name": "Docket Demo", "organisation": org_id}, token=token)
         if status not in (200, 201):
             raise SystemExit(f"cannot create project: {status} {project}")
         projects = [project]
@@ -229,6 +229,37 @@ def toml_config(path: Path, ekey: str, exp_id: int, guardrail_id: int | None = N
     path.write_text("\n".join(lines) + "\n")
 
 
+def release_config(path: Path, ekey: str, checkout_id: int, express_id: int,
+                   refund_id: int) -> None:
+    lines = [
+        "[flagsmith]",
+        f'base = "{BASE}"',
+        f'environment = "{ekey}"',
+        "",
+        "[release]",
+        'name = "demo-release"',
+        "require_signature = false",
+        "",
+    ]
+    for xid, label in ((checkout_id, "checkout CTA"), (express_id, "express checkout")):
+        lines += [
+            "[[experiment]]",
+            f"id = {xid}",
+            f'label = "{label}"',
+            "n_min = 50",
+            "c_min = 5",
+            "win_threshold = 0.95",
+            'expected_direction = "increase"',
+            "weights = { control = 50, red = 50 }",
+            "guardrails = [",
+            f'  {{ metric_id = {refund_id}, name = "{REFUND}", '
+            'expected_direction = "not_increase", tolerance = 0.0 },',
+            "]",
+            "",
+        ]
+    path.write_text("\n".join(lines) + "\n")
+
+
 def write_env(ekey: str) -> None:
     (HERE / "demo.env").write_text("\n".join([
         f"FLAGSMITH_ENV_KEY={ekey}",
@@ -274,9 +305,10 @@ def main() -> int:
         broken_metric, refund_id, broken_red)
 
     write_env(ekey)
-    toml_config(ROOT / "demo" / "verdict.toml", ekey, checkout_xid, refund_id)
-    toml_config(ROOT / "demo" / "verdict.express.toml", ekey, express_xid, refund_id)
-    toml_config(ROOT / "demo" / "verdict.broken.toml", ekey, broken_xid)
+    toml_config(ROOT / "demo" / "docket.toml", ekey, checkout_xid, refund_id)
+    toml_config(ROOT / "demo" / "docket.express.toml", ekey, express_xid, refund_id)
+    toml_config(ROOT / "demo" / "docket.broken.toml", ekey, broken_xid)
+    release_config(ROOT / "demo" / "docket.release.toml", ekey, checkout_xid, express_xid, refund_id)
     (HERE / "seed.json").write_text(json.dumps({
         "environment_key": ekey,
         "base": BASE,
@@ -291,7 +323,7 @@ def main() -> int:
     print(f"checkout experiment {checkout_xid} (running)")
     print(f"express experiment {express_xid} (running)")
     print(f"broken fixture experiment {broken_xid} (running, keyless variation)")
-    print("wrote demo/verdict.toml, demo/verdict.express.toml, demo/verdict.broken.toml, demo/demo.env")
+    print("wrote demo/docket.toml, demo/docket.express.toml, demo/docket.broken.toml, demo/docket.release.toml, demo/demo.env")
     return 0
 
 

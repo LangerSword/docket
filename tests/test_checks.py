@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import unittest
 
-from verdict.checks import run_audit
-from verdict.rules import RuleConfig
+from docket.checks import run_audit
+from docket.rules import RuleConfig
 
 
 def experiment(keyless: bool = False, event: str = "purchase_completed") -> dict:
@@ -75,12 +75,12 @@ def statuses(checks) -> dict[str, str]:
 
 class AuditTest(unittest.TestCase):
     def test_good_wiring_has_no_blocks(self):
-        checks, verdict = run_audit(FakeClient(experiment(), results()), "env", 7,
+        checks, docket = run_audit(FakeClient(experiment(), results()), "env", 7,
                                     events_url="http://localhost:8000/api")
         self.assertNotIn("block", statuses(checks).values())
-        self.assertIsNotNone(verdict)
+        self.assertIsNotNone(docket)
         # weights were derived from the rollout, so the SRM check ran
-        self.assertIsNotNone(verdict.srm_p)
+        self.assertIsNotNone(docket.srm_p)
 
     def test_keyless_variant_blocks(self):
         checks, _ = run_audit(FakeClient(experiment(keyless=True), results()), "env", 7)
