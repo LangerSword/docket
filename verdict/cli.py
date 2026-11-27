@@ -11,6 +11,7 @@ from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .attest import sign_record, verify_record
 from .checks import run_audit, summarise
 from .client import ApiError, Flagsmith
 from .report import render
@@ -109,6 +110,14 @@ def cmd_ship(args, cfg: RuleConfig) -> int:
         print("Would ship. Re-run with --confirm to end the experiment and roll out the winner.")
         return 0
 
+    signing_key = None
+    if args.sign:
+        signing_key = os.environ.get("VERDICT_SIGNING_KEY", "")
+        if not signing_key:
+            print("REFUSING TO SIGN: set VERDICT_SIGNING_KEY before using --sign",
+                  file=sys.stderr)
+            return 3
+
     exp = client.experiment(args.env, args.experiment)
     if exp.get("status") == "completed":
         print("REFUSING: experiment already completed (results are final)")
@@ -141,17 +150,56 @@ def cmd_ship(args, cfg: RuleConfig) -> int:
                      "winner": winner, "value": value, "allocation": 100},
         "actor": os.environ.get("VERDICT_ACTOR", os.environ.get("GITHUB_ACTOR", "local")),
     }
+    if signing_key:
+        record = sign_record(record, signing_key)
     out = Path(args.record or f"verdict-{args.experiment}-{int(time.time())}.json")
     out.write_text(json.dumps(record, indent=2))
     md = out.with_suffix(".md")
+    signature = record.get("signature") or {}
+    signature_line = (
+        f"- signature: {signature.get('alg')} key {signature.get('key_id')} "
+        f"(verify with `verdict verify {out.name}`)\n" if signature else "")
     md.write_text(
         f"# Ship decision: experiment {args.experiment}\n\n"
         f"- verdict: **{v.state.value}**\n- leading variant: `{winner}`\n"
         f"- as of: {v.as_of}\n"
         + "".join(f"- {r}\n" for r in v.reasons)
-        + f"- mutation: feature {fid}, state {state['id']}, allocation 100/0\n")
-    print(f"SHIPPED {winner}: experiment ended, weight 100/0, record {out} and {md}")
+        + f"- mutation: feature {fid}, state {state['id']}, allocation 100/0\n"
+        + signature_line)
+    signed = f", signed {signature['key_id']}" if signature else ""
+    print(f"SHIPPED {winner}: experiment ended, weight 100/0, record {out} and {md}{signed}")
     return 0
+
+
+def cmd_verify(args, cfg: RuleConfig) -> int:
+    path = Path(args.record)
+    try:
+        record = json.loads(path.read_text())
+    except OSError as e:
+        print(f"cannot read {path}: {e}", file=sys.stderr)
+        return 3
+    except json.JSONDecodeError as e:
+        print(f"{path} is not valid JSON: {e}", file=sys.stderr)
+        return 3
+    if not isinstance(record, dict):
+        print(f"{path} does not contain a decision record object", file=sys.stderr)
+        return 3
+    key = os.environ.get("VERDICT_SIGNING_KEY", "")
+    if not key:
+        print("set VERDICT_SIGNING_KEY to the key used when the record was signed",
+              file=sys.stderr)
+        return 3
+    ok, message = verify_record(record, key)
+    print(f"DECISION RECORD: {'VALID' if ok else 'INVALID'}")
+    print(f"  {message}")
+    if ok:
+        verdict = record.get("verdict") or {}
+        print(f"  state {verdict.get('state')} (exit {verdict.get('exit_code')}), "
+              f"experiment {record.get('experiment')}")
+        mutation = record.get("mutation") or {}
+        print(f"  mutation feature {mutation.get('feature')} -> {mutation.get('winner')} "
+              f"at {mutation.get('allocation')}%")
+    return 0 if ok else 2
 
 
 def cmd_init(args, cfg: RuleConfig) -> int:
@@ -247,7 +295,13 @@ def main(argv: list[str] | None = None) -> int:
     add_common(sp_ship)
     sp_ship.add_argument("--confirm", action="store_true")
     sp_ship.add_argument("--record", help="path for the decision record")
+    sp_ship.add_argument("--sign", action="store_true",
+                         help="sign the decision record with $VERDICT_SIGNING_KEY")
     sp_ship.set_defaults(func=cmd_ship)
+
+    sp_verify = sub.add_parser("verify", help="verify a signed decision record")
+    sp_verify.add_argument("record", type=Path, help="path to the decision record JSON")
+    sp_verify.set_defaults(func=cmd_verify)
 
     sp_report = sub.add_parser("report", help="write a standalone HTML decision report")
     add_common(sp_report)
@@ -262,7 +316,7 @@ def main(argv: list[str] | None = None) -> int:
     args._raw = raw
     fs = raw.get("flagsmith") or {}
     ex = raw.get("experiment") or {}
-    args.env = args.env or fs.get("environment")
+    args.env = getattr(args, "env", None) or fs.get("environment")
     if hasattr(args, "experiment") and args.experiment is None:
         args.experiment = ex.get("id")
     if args.command in {"audit", "gate", "ship", "report"} and not (args.env and args.experiment):

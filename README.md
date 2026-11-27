@@ -43,7 +43,8 @@ GitHub Action.
 |---|---|
 | `verdict audit` | Checks the experiment's wiring before you trust a number: warehouse connected, rollout live, every variation keyed, control identifiable, every metric event present in the warehouse, events URL pointed at your instance, both arms receiving traffic, conversions firing, sample ratio sane. Each failure prints the fix. |
 | `verdict gate` | Reads the experiment's own results and returns one of seven states with the numbers that produced it. Exit `0` is the only value that allows a release. |
-| `verdict ship --confirm` | Only runs on `WINNER`: completes the experiment, writes the winning variation to 100%, and emits a JSON + Markdown decision record with the statistics and the exact flag mutation. Refuses a completed experiment. |
+| `verdict ship --confirm` | Only runs on `WINNER`: completes the experiment, writes the winning variation to 100%, and emits a JSON + Markdown decision record with the statistics and the exact flag mutation. Refuses a completed experiment. Add `--sign` to attest the record. |
+| `verdict verify` | Checks a signed decision record against `$VERDICT_SIGNING_KEY`; any edit to a lift, interval, experiment id or flag mutation invalidates it. |
 | `verdict report` | Writes one standalone HTML file you can attach to a PR: state, interval, arms, audit table, deep link into Flagsmith. |
 
 ### The seven states
@@ -243,20 +244,42 @@ The composite action installs the package, runs the audit, gates the release,
 fails the job on anything that is not `winner`, and comments the verdict on the
 pull request. The gate's exit code is the required status.
 
+## Signed decision records
+
+A decision record is only evidence if it cannot be edited after the fact. With a
+signing key, `ship` writes an HMAC-SHA256 attestation over every field except the
+signature itself:
+
+```bash
+export VERDICT_SIGNING_KEY="$(openssl rand -hex 32)"
+verdict ship --confirm --sign --record demo/decision.json
+verdict verify demo/decision.json
+# DECISION RECORD: VALID
+#   valid hmac-sha256 signature, key 4f9c2a1b8e77
+#   state winner (exit 0), experiment 10
+#   mutation feature 1 -> red at 100%
+```
+
+The record carries a public `key_id` fingerprint, never the key. Change a lift,
+an interval, the experiment id or the flag mutation and `verify` exits 2. Archive
+the JSON with the pull request or the deploy, and a later audit can prove the
+decision was made on those exact numbers.
+
 ## How it is built
 
-One Python package, four modules, stdlib HTTP:
+One Python package, five modules, stdlib HTTP:
 
 ```
 verdict/
   client.py   Flagsmith API client: auth, results, warehouse, feature states
   rules.py    pure decision engine: seven states, SRM, guardrails, intervals
   checks.py   audit catalog, each check returns pass/warn/block with a fix
+  attest.py   HMAC-SHA256 signing and verification of decision records
   report.py   human, JSON and standalone HTML output
-  cli.py      audit | gate | ship | report
+  cli.py      audit | gate | ship | verify | report
 demo/         sample shop, seeder, traffic driver, one-command orchestrator
 action/       composite GitHub Action
-tests/        26 engine, audit and fixture tests
+tests/        34 engine, audit, attestation and fixture tests
 ```
 
 The engine is pure and testable without network: typed errors map to exit codes,
@@ -266,6 +289,17 @@ respected, and `ship` is idempotent.
 ```bash
 python3 -m pytest tests -q
 ```
+
+## Where this goes
+
+Verdict is the gate today. The gap underneath it is bigger: feature flags made
+releases continuous, but nobody owns the **release decision** — evidence,
+policy, mutation and an audit trail in one place. The roadmap is a release
+decision layer: signed decision records (shipped), then a post-ship guard and
+automatic rollback, policy-as-code, a release ledger, an OpenFeature adapter so
+the same engine works beyond Flagsmith, and an agent-native CLI/MCP.
+
+[Read the roadmap](ROADMAP.md).
 
 ## What it does not do
 
