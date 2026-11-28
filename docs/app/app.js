@@ -12,7 +12,10 @@
     busy: false,
     demoConfig: "",
     verifyText: "",
-    recordNote: ""
+    recordNote: "",
+    flow: "decide",
+    checkTimer: 0,
+    toastTimer: 0
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -44,6 +47,71 @@
     if (!el) return;
     el.textContent = text;
     el.classList.toggle("error", Boolean(isError));
+  }
+
+  function showToast(text, bad) {
+    var toast = $("toast");
+    if (!toast) return;
+    window.clearTimeout(state.toastTimer);
+    toast.textContent = text;
+    toast.classList.toggle("bad", Boolean(bad));
+    toast.hidden = false;
+    window.requestAnimationFrame(function () { toast.classList.add("is-visible"); });
+    state.toastTimer = window.setTimeout(function () {
+      toast.classList.remove("is-visible");
+      window.setTimeout(function () { toast.hidden = true; }, 260);
+    }, 3600);
+  }
+
+  function renderFlow() {
+    var order = ["connect", "check", "decide", "ship"];
+    var step = order.indexOf(state.flow);
+    if (step < 0) step = 0;
+    document.querySelectorAll("#flow li").forEach(function (item, index) {
+      item.classList.toggle("is-done", index < step);
+      item.classList.toggle("is-active", index === step);
+      item.classList.toggle("is-locked", order[index] === "ship" && (state.mode === "demo" || !state.docket || state.docket.state !== "cleared"));
+    });
+    var note = $("flow-note");
+    if (note) {
+      note.textContent = state.mode === "demo"
+        ? "Recorded file"
+        : state.live ? "Live / " + state.live.base.replace(/^https?:\/\//, "") : "Not connected";
+    }
+  }
+
+  function setFlow(step) {
+    state.flow = step;
+    renderFlow();
+  }
+
+  function setChecking(active, title, labels) {
+    var layer = $("checking");
+    if (!layer) return;
+    window.clearInterval(state.checkTimer);
+    if (!active) {
+      layer.hidden = true;
+      $("decision").setAttribute("aria-busy", "false");
+      return;
+    }
+    layer.hidden = false;
+    $("decision").setAttribute("aria-busy", "true");
+    $("checking-title").textContent = title || "Reading the release";
+    var steps = Array.prototype.slice.call(document.querySelectorAll("#checking-steps li"));
+    steps.forEach(function (item, index) {
+      item.textContent = (labels && labels[index]) || item.textContent;
+      item.classList.remove("is-on");
+    });
+    var current = 0;
+    steps[0].classList.add("is-on");
+    state.checkTimer = window.setInterval(function () {
+      current = Math.min(steps.length - 1, current + 1);
+      steps.forEach(function (item, index) { item.classList.toggle("is-on", index <= current); });
+    }, 480);
+  }
+
+  function wait(ms) {
+    return new Promise(function (resolve) { window.setTimeout(resolve, ms); });
   }
 
   function currentCase() {
@@ -93,9 +161,14 @@
           '<span class="state ' + (item.state === "winner" ? "win" : item.state === "guardrail" ? "refuse" : "") + '">' + esc(stateLabel(item.state)) + '</span>' +
           '<span class="note">' + esc(note) + '</span>';
         button.addEventListener("click", function () {
-          state.index = index;
-          renderRail();
-          renderDecision();
+          var decision = $("decision");
+          decision.classList.add("is-changing");
+          window.setTimeout(function () {
+            state.index = index;
+            renderRail();
+            renderDecision();
+            window.requestAnimationFrame(function () { decision.classList.remove("is-changing"); });
+          }, 150);
         });
         list.appendChild(button);
       });
@@ -222,6 +295,7 @@
     renderRail();
     renderDecision();
     renderRecord();
+    renderFlow();
   }
 
   function downloadRecord() {
@@ -292,6 +366,7 @@
       state.recordNote = "Cleared one-case release, not the blocked release above.";
       state.mode = "demo";
       state.index = 0;
+      state.flow = "decide";
       renderAll();
       setHelp("Recorded file loaded. Press replay to inspect the decision.");
     } catch (error) {
@@ -352,6 +427,7 @@
     state.record = null;
     state.verifyText = "";
     state.recordNote = "";
+    state.flow = "check";
     renderAll();
     connectClose();
     setHelp("Connected. Running a live check...");
@@ -366,8 +442,14 @@
     state.busy = true;
     state.record = null;
     state.verifyText = "";
-    renderRail();
+    setFlow("check");
+    setChecking(true, "Reading the release", [
+      "Contacting Flagsmith",
+      "Auditing every case",
+      "Assembling the docket"
+    ]);
     setHelp("Reading Flagsmith. No flags are written by a check.");
+    var started = Date.now();
     try {
       var response = await api("/api/v1/release/check", {
         base: state.live.base,
@@ -376,21 +458,35 @@
         config: state.live.config,
         events_url: state.live.eventsUrl
       });
+      await wait(Math.max(0, 950 - (Date.now() - started)));
       state.docket = response.data;
       state.index = 0;
       state.busy = false;
+      setChecking(false);
+      setFlow("decide");
       renderAll();
       setHelp("Live check complete. " + state.docket.release + " is " + stateLabel(state.docket.state).toLowerCase() + ".");
+      showToast("Docket assembled for " + state.docket.release + ".");
     } catch (error) {
+      await wait(Math.max(0, 950 - (Date.now() - started)));
       state.busy = false;
+      setChecking(false);
+      setFlow("connect");
       renderRail();
       setHelp(error.message, true);
+      showToast(error.message, true);
     }
   }
 
   function run() {
     if (state.mode === "demo") {
       state.busy = true;
+      setFlow("check");
+      setChecking(true, "Replaying the recorded file", [
+        "Opening the release",
+        "Replaying the audit",
+        "Restoring the decision"
+      ]);
       renderRail();
       setHelp("Replaying the recorded check. No live writes.");
       window.setTimeout(function () {
@@ -398,9 +494,12 @@
         state.docket = state.demo.release;
         state.record = state.demo.record || null;
         state.index = 0;
+        setChecking(false);
+        setFlow("decide");
         renderAll();
         setHelp("Recorded check replayed. This file is blocked and wrote nothing.");
-      }, 550);
+        showToast("Recorded file restored. The release is still blocked.");
+      }, 1650);
     } else {
       liveCheck();
     }
@@ -426,6 +525,7 @@
     $("confirm-submit").disabled = true;
     $("confirm-error").textContent = "";
     state.busy = true;
+    setFlow("ship");
     try {
       var response = await api("/api/v1/release/ship", {
         base: state.live.base,
@@ -443,7 +543,9 @@
       state.busy = false;
       confirmClose();
       renderAll();
+      setFlow("ship");
       setHelp("Released and signed. Download the record from the side panel.");
+      showToast("Release signed. Download the record.");
     } catch (error) {
       state.busy = false;
       if (error.status === 409 && error.detail && error.detail.docket) {
@@ -452,6 +554,7 @@
         renderAll();
         confirmClose();
         setHelp("Ship refused: the docket is not cleared.", true);
+        showToast("Ship refused. The docket is not cleared.", true);
       } else {
         $("confirm-error").textContent = error.message;
         $("confirm-submit").disabled = false;
@@ -467,6 +570,7 @@
     state.docket = state.demo ? state.demo.release : null;
     state.index = 0;
     state.verifyText = "";
+    state.flow = "decide";
     $("token-input").value = "";
     $("signing-input").value = "";
     renderAll();

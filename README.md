@@ -20,7 +20,7 @@ DECISION: INCONCLUSIVE  (exit 1)
 Built for **Toggle Wars, Track 03** (build on open-source Flagsmith), November 2026.
 MIT.
 
-[Product site](https://langersword.github.io/docket/) · [Demo video](https://github.com/LangerSword/docket/releases/download/demo-v1/docket-demo.mp4) · [Roadmap](ROADMAP.md)
+[Product site](https://langersword.github.io/docket/) · [Console](https://langersword.github.io/docket/app/) · [Docs](https://langersword.github.io/docket/docs/) · [Demo video](https://github.com/LangerSword/docket/releases/download/demo-v1/docket-demo.mp4) · [Roadmap](ROADMAP.md)
 
 ## The problem
 
@@ -88,6 +88,16 @@ on noise. States are evaluated in this order:
 Invariants: never `winner` below the sample floor; never `winner` on a sample
 ratio mismatch; `losing` and `winner` are mutually exclusive; every state carries
 the numbers that produced it.
+
+## Browser console
+
+The console is the same release file in the browser, with no signup and no stored session:
+
+- **Demo** reads a recorded docket from the self-hosted stack: two cases, a blocked release, and a cleared one-case record.
+- **Connect** takes a Flagsmith base URL, environment key, admin token, and release TOML, then runs a live check. The token and signing key stay in memory for that tab.
+- **Ship** is enabled only when the live docket is cleared. It requires a typed confirmation and a signing key, then returns the signed record for download.
+
+The console uses the stateless API in `server/`, deployed with the SAM template in `template.yaml`. The API accepts only public HTTPS targets when deployed, blocks private and link-local addresses, and has no database. Demo mode is a recorded snapshot; live mode reads the user's own Flagsmith.
 
 ## Demo video
 

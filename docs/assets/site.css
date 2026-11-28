@@ -46,8 +46,9 @@
   --display: "Docket Display", Impact, "Arial Narrow", sans-serif;
   --read: "Docket Read", Georgia, "Times New Roman", serif;
   --mono: "Docket Mono", "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
-  --gutter: clamp(18px, 4vw, 64px);
-  --max: 1500px;
+  --ppi: 1;
+  --gutter: calc(clamp(18px, 4vw, 64px) * var(--ppi));
+  --max: calc(1500px * var(--ppi));
   --ease: cubic-bezier(.22, 1, .36, 1);
   --nav: 60px;
 }
@@ -57,6 +58,7 @@
 *::after { box-sizing: border-box; }
 
 html {
+  font-size: calc(16px * var(--ppi));
   scroll-behavior: smooth;
   scroll-padding-top: calc(var(--nav) + 16px);
   -webkit-text-size-adjust: 100%;
@@ -296,7 +298,7 @@ code, pre { font-family: var(--mono); }
   position: relative;
   z-index: 4;
   justify-self: end;
-  width: min(100%, 660px);
+  width: min(100%, calc(660px * var(--ppi)));
   margin-left: -9vw;
   margin-top: 3vh;
   padding: clamp(24px, 2.7vw, 36px);
@@ -497,7 +499,7 @@ code, pre { font-family: var(--mono); }
 .panel-link span { color: var(--red-light); }
 
 .panel-paper {
-  width: min(100%, 500px);
+  width: min(100%, calc(500px * var(--ppi)));
   justify-self: center;
   background: var(--paper);
   color: var(--ink);
@@ -572,7 +574,7 @@ code, pre { font-family: var(--mono); }
 .mint-link { border-color: rgba(169, 231, 189, .45); }
 .mint-link span { color: var(--mint); }
 .audit-print {
-  width: min(100%, 540px);
+  width: min(100%, calc(540px * var(--ppi)));
   justify-self: center;
   background: var(--paper);
   color: var(--ink);
@@ -1048,4 +1050,66 @@ code, pre { font-family: var(--mono); }
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .reveal { transform: none; }
   .cover-file, .panel-paper, .audit-print, .record-paper, .evidence-file, .paper-terminal { transform: none; }
+}
+
+/* PPI / large surface scale: type and key artefacts grow on high-density, wide displays */
+@media (min-width: 1600px) { :root { --ppi: 1.06; } }
+@media (min-width: 2000px) { :root { --ppi: 1.14; } }
+@media (min-width: 2600px) { :root { --ppi: 1.26; } }
+@media (min-width: 3200px) { :root { --ppi: 1.38; } }
+@media (max-width: 560px) { :root { --ppi: .94; } }
+
+body { font-size: calc(18px * var(--ppi)); }
+.micro { font-size: calc(9px * var(--ppi)); }
+.refused { font-size: clamp(calc(80px * var(--ppi)), 15vw, calc(240px * var(--ppi))); }
+.cover-line { font-size: calc(clamp(25px, 2.3vw, 34px) * var(--ppi)); }
+.cover-lede { font-size: calc(17px * var(--ppi)); }
+.file-name { font-size: calc(clamp(26px, 2.8vw, 37px) * var(--ppi)); }
+.file-row .row-name { font-size: calc(22px * var(--ppi)); }
+.row-note, .row-id, .row-state { font-size: calc(9.2px * var(--ppi)); }
+.file-foot { font-size: calc(8.5px * var(--ppi)); }
+.cover-rail { font-size: calc(8.5px * var(--ppi)); min-height: calc(44px * var(--ppi)); }
+.panel-big { font-size: calc(clamp(4.4rem, 12vw, 11.5rem) * var(--ppi)); }
+.panel-line { font-size: calc(18px * var(--ppi)); }
+.panel-link, .panel-state { font-size: calc(9px * var(--ppi)); }
+.paper-rows dd { font-size: calc(13px * var(--ppi)); }
+.record-intro h2 { font-size: calc(clamp(36px, 5.3vw, 72px) * var(--ppi)); }
+.record-intro > p:last-child { font-size: calc(17px * var(--ppi)); }
+.record-name { font-size: calc(clamp(48px, 9vw, 140px) * var(--ppi)); }
+.record-rows b, .record-command, .record-code pre { font-size: calc(11px * var(--ppi)); }
+.flagsmith h2, .install h2 { font-size: calc(clamp(36px, 5vw, 68px) * var(--ppi)); }
+.flagsmith-copy > p, .install-copy > p { font-size: calc(17px * var(--ppi)); }
+.endpoint-list code, .path code { font-size: calc(10px * var(--ppi)); }
+.memo-rows p { font-size: calc(16px * var(--ppi)); }
+.limits h2 { font-size: calc(clamp(30px, 4vw, 52px) * var(--ppi)); }
+
+/* one glass status rail on the cover, with a slow CSS-only sweep */
+.cover-rail {
+  background: rgba(16, 27, 116, .58);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  position: relative;
+  overflow-y: hidden;
+}
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+  .cover-rail { background: var(--blue-deep); }
+}
+.cover-rail::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 18%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(241, 234, 217, .14), transparent);
+  transform: translateX(-120%);
+  animation: rail-sheen 8s ease-in-out infinite;
+}
+@keyframes rail-sheen {
+  0%, 56% { transform: translateX(-120%); }
+  76%, 100% { transform: translateX(620%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cover-rail::after { animation: none; }
 }

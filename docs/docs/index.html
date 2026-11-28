@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Docket docs - release decisions for Flagsmith</title>
+  <meta name="description" content="What Docket does, what Flagsmith is, how a release docket works, and why a release needs a decision instead of another dashboard.">
+  <link rel="canonical" href="https://langersword.github.io/docket/docs/">
+  <meta name="theme-color" content="#1b2bb5">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="../assets/fonts/anton.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../assets/fonts/newsreader.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+<a class="skip" href="#content">Skip to docs</a>
+
+<header class="docs-top">
+  <a class="brand" href="../">docket<span>.</span></a>
+  <span class="top-sep">/</span>
+  <span class="top-label">Docs</span>
+  <nav class="docs-nav" aria-label="Documentation">
+    <a href="../">Site</a>
+    <a href="../app/">Console</a>
+    <a href="https://github.com/LangerSword/docket">GitHub <span aria-hidden="true">↗</span></a>
+  </nav>
+</header>
+
+<div class="docs-layout">
+  <aside class="toc" aria-label="On this page">
+    <p class="micro">On this page</p>
+    <ol>
+      <li><a href="#what">What Docket does</a></li>
+      <li><a href="#flagsmith">What is Flagsmith</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#use">What you can do</a></li>
+      <li><a href="#why">Why use it</a></li>
+      <li><a href="#start">Start here</a></li>
+      <li><a href="#limits">Honest limits</a></li>
+      <li><a href="#faq">Questions</a></li>
+    </ol>
+    <div class="toc-note">
+      <p class="micro">Short version</p>
+      <p>Flagsmith decides which variant wins. Docket decides whether the release may ship.</p>
+      <a class="text-link" href="../app/">Open the console <span aria-hidden="true">↗</span></a>
+    </div>
+  </aside>
+
+  <main class="paper" id="content" data-slot="docs">
+    <p class="micro dark">Documentation / Toggle Wars, Track 03</p>
+    <h1>Release decisions, not another experiment dashboard.</h1>
+    <p class="lede">Flagsmith tells you which variant is ahead. Docket takes every experiment in a release, audits the evidence, refuses the whole release when one case fails, and signs the decision.</p>
+    <div class="docs-actions">
+      <a class="button button-ink" href="../app/">Open the console</a>
+      <a class="text-link" href="https://github.com/LangerSword/docket#readme">Read the README <span aria-hidden="true">↗</span></a>
+    </div>
+
+    <section id="what">
+      <p class="section-kicker">01 / What it does</p>
+      <h2>One release. Every case. One signed decision.</h2>
+      <p>A release is rarely one experiment. It is a checkout change, a pricing change and a copy change that interact. An experiment page can say the checkout variant is ahead. It cannot say whether the release is safe to ship.</p>
+      <p>Docket treats the release as a docket. Each experiment is a case with its own evidence. Every case is audited before its statistics are trusted. If one case is broken, losing, not ready or guardrailed, the release is refused and no flag is written.</p>
+      <div class="callout">
+        <span class="callout-label">The test</span>
+        <p>Delete Flagsmith from the product and there is nothing to decide. The experiment results are the evidence, the wiring is the audit, and the feature state is the release.</p>
+      </div>
+    </section>
+
+    <section id="flagsmith">
+      <p class="section-kicker">02 / The platform underneath</p>
+      <h2>What is Flagsmith?</h2>
+      <p>Flagsmith is an open-source feature flag and remote configuration service. It stores flags and their variations, evaluates them for users, records exposures, receives your product events and runs experiments with a Bayesian statistics engine. You can use the hosted service or run the whole thing yourself.</p>
+      <p>Flagsmith is where the experiment lives. Docket is the layer that reads the experiment, checks whether the data can be trusted, and decides what happens to the release. It does not replace Flagsmith and it does not need a second source of truth.</p>
+      <div class="link-row">
+        <a class="text-link" href="https://docs.flagsmith.com/experimentation">Flagsmith experimentation docs <span aria-hidden="true">↗</span></a>
+        <a class="text-link" href="https://github.com/Flagsmith/flagsmith">Flagsmith on GitHub <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+
+    <section id="how">
+      <p class="section-kicker">03 / The path</p>
+      <h2>How it works.</h2>
+      <p>The CLI and the console run the same path. A check is read only. A ship is explicit, pre-validated and signed.</p>
+      <div class="doc-flow" aria-label="Read, audit, decide, release">
+        <div class="doc-node">
+          <span>01</span>
+          <h3>Read</h3>
+          <p>Sufficient statistics, interval, chance to win, exposures and sample ratio from the experiment results.</p>
+          <code>GET /experiments/{id}/results/</code>
+        </div>
+        <div class="doc-node">
+          <span>02</span>
+          <h3>Audit</h3>
+          <p>Variant keys, event names, warehouse connection, rollout, control variant and allocation. A broken case never gets a number.</p>
+          <code>GET /warehouse-connections/{id}/events/</code>
+        </div>
+        <div class="doc-node">
+          <span>03</span>
+          <h3>Decide</h3>
+          <p>Seven states: winner, losing, inconclusive, collecting, guardrail, broken, unreachable. Exit 0, 1, 2 or 3.</p>
+          <code>docket release check</code>
+        </div>
+        <div class="doc-node">
+          <span>04</span>
+          <h3>Release</h3>
+          <p>Every mutation is validated before any write. A cleared docket completes the experiments, writes each winner to 100%, signs one record and appends the ledger.</p>
+          <code>POST /experiments/{id}/complete/</code>
+        </div>
+      </div>
+      <p class="note">A refusal is not a warning. If the docket is blocked, nothing is written. That is why a signed record only exists for a cleared release.</p>
+    </section>
+
+    <section id="use">
+      <p class="section-kicker">04 / What you can do</p>
+      <h2>Use it before the deploy, not after the incident.</h2>
+      <div class="feature-table" role="table" aria-label="Docket capabilities">
+        <div class="feature-row head" role="row"><span>Job</span><span>What Docket gives you</span><span>Surface</span></div>
+        <div class="feature-row" role="row"><span>Check a release</span><span>Audit every case and aggregate a release decision</span><span>CLI / Action / console</span></div>
+        <div class="feature-row" role="row"><span>Stop a bad ship</span><span>Refuse on a guardrail regression even when the primary metric wins</span><span>exit 2</span></div>
+        <div class="feature-row" role="row"><span>Explain a refusal</span><span>Intervals, win probability, exposures and the exact audit block</span><span>report / console</span></div>
+        <div class="feature-row" role="row"><span>Ship safely</span><span>Pre-validate every mutation, then complete experiments and roll winners to 100%</span><span><code>release ship</code></span></div>
+        <div class="feature-row" role="row"><span>Prove it later</span><span>One HMAC-SHA256 record, an append-only JSONL ledger, offline verification</span><span><code>docket verify</code></span></div>
+        <div class="feature-row" role="row"><span>Put it in CI</span><span>Fail the check when a release is not clear</span><span>GitHub Action</span></div>
+      </div>
+    </section>
+
+    <section id="why">
+      <p class="section-kicker">05 / Why use it</p>
+      <h2>Because the number is not the decision.</h2>
+      <div class="why-grid">
+        <div>
+          <h3>Prevent shipping on noise.</h3>
+          <p>An interval that crosses zero, a sample that is still collecting, or a split that is wrong is not a green light. Docket refuses before the release, not after the retro.</p>
+        </div>
+        <div>
+          <h3>Decide at the release level.</h3>
+          <p>One dashboard per experiment leaves the release decision to whoever is awake. Docket makes the release the unit and gives it one state, one exit code and one record.</p>
+        </div>
+        <div>
+          <h3>Leave evidence.</h3>
+          <p>A signed record is useful to the next engineer, the auditor and the postmortem. It says what was known, what was refused and what was written, and it can be checked offline.</p>
+        </div>
+      </div>
+      <p class="note">Use Flagsmith alone when you only need a flag toggle or one experiment. Use Docket when the release has several cases and someone has to be accountable for the decision.</p>
+    </section>
+
+    <section id="start">
+      <p class="section-kicker">06 / Start here</p>
+      <h2>Three ways in.</h2>
+      <h3>Open the console</h3>
+      <p>The console runs a recorded release file with no signup. Connect your own Flagsmith to run a live check, then ship only when the docket is cleared.</p>
+      <div class="code-block">
+        <div class="code-head"><span>Browser</span></div>
+        <pre>https://langersword.github.io/docket/app/</pre>
+      </div>
+
+      <h3>Run the demo locally</h3>
+      <p>Self-hosted Flagsmith, two live experiments, a sample shop, a release docket and a deliberately broken fixture.</p>
+      <div class="code-block">
+        <div class="code-head"><span>Terminal</span></div>
+        <pre>git clone https://github.com/LangerSword/docket
+cd docket
+make demo
+
+docket --config demo/docket.release.toml release check
+docket --config demo/docket.release.toml release ship --confirm --sign</pre>
+      </div>
+
+      <h3>Put it in CI</h3>
+      <div class="code-block">
+        <div class="code-head"><span>GitHub Actions</span></div>
+        <pre>- uses: LangerSword/docket/action@v1
+  with:
+    token: ${{ secrets.DOCKET_TOKEN }}
+    env: ${{ vars.FLAGSMITH_ENV }}
+    experiment: 16</pre>
+      </div>
+    </section>
+
+    <section id="limits">
+      <p class="section-kicker">07 / Honest limits</p>
+      <h2>What it does not do yet.</h2>
+      <ul class="limits-list">
+        <li><strong>No post-ship guard.</strong> Once a winner is live, Docket does not watch the guardrail or roll it back.</li>
+        <li><strong>Admin token required.</strong> The web console needs a Flagsmith Admin API token. Use a dedicated token and revoke it when the release is done.</li>
+        <li><strong>Public API accepts public HTTPS targets.</strong> A self-hosted Flagsmith on a private address needs the local API, not the hosted one.</li>
+      </ul>
+    </section>
+
+    <section id="faq">
+      <p class="section-kicker">08 / Questions</p>
+      <h2>Short answers.</h2>
+      <div class="faq-item"><h3>Does Docket replace Flagsmith?</h3><p>No. Flagsmith stores and evaluates the experiment. Docket reads the result and decides the release. Delete Flagsmith and Docket has no evidence.</p></div>
+      <div class="faq-item"><h3>Does the console store my token?</h3><p>No. The token and signing key live in browser memory for the tab, are sent to the API per request, and are never written to storage. The API has no database.</p></div>
+      <div class="faq-item"><h3>What does exit 2 mean?</h3><p>The release is blocked. A case is broken, losing or guardrailed. Nothing was written.</p></div>
+      <div class="faq-item"><h3>Can I use Flagsmith Cloud?</h3><p>Yes. Give the console the API base URL, environment key, admin token, and the events URL your app sends to. The release check reads the experiment results and audits the wiring.</p></div>
+      <div class="faq-item"><h3>Where is the source?</h3><p><a href="https://github.com/LangerSword/docket">github.com/LangerSword/docket</a>. MIT.</p></div>
+    </section>
+
+    <footer class="docs-foot">
+      <p>MIT / built for Toggle Wars, Track 03 / 2026</p>
+      <div><a href="../">Site</a><a href="../app/">Console</a><a href="https://github.com/LangerSword/docket">GitHub</a></div>
+    </footer>
+  </main>
+</div>
+</body>
+</html>

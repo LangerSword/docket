@@ -24,9 +24,22 @@
   <span class="mode-badge" id="mode-badge">Demo</span>
   <div class="top-actions">
     <button class="top-button" id="connect-button" type="button">Connect Flagsmith</button>
+    <a class="top-link" href="../docs/">Docs</a>
     <a class="top-link" href="../">Site <span aria-hidden="true">↗</span></a>
   </div>
 </header>
+
+<div class="flow" id="flow" aria-label="Release workflow">
+  <ol>
+    <li data-step="connect"><span>01</span><b>Connect</b></li>
+    <li data-step="check"><span>02</span><b>Check</b></li>
+    <li data-step="decide"><span>03</span><b>Decide</b></li>
+    <li data-step="ship"><span>04</span><b>Ship</b></li>
+  </ol>
+  <p id="flow-note">Recorded file</p>
+</div>
+
+<noscript><p class="noscript">The console needs JavaScript to read Flagsmith and render the docket.</p></noscript>
 
 <main class="app-main" data-slot="console">
   <aside class="rail" aria-label="Release cases">
@@ -76,6 +89,19 @@
     <div class="case-checks">
       <div class="checks-head"><p class="micro dark">Audit</p><span id="checks-summary">11 pass</span></div>
       <div id="check-list"></div>
+    </div>
+
+    <div class="checking" id="checking" hidden aria-live="polite">
+      <div class="checking-card">
+        <p class="micro dark">Working</p>
+        <p class="checking-title" id="checking-title">Reading the release</p>
+        <div class="checking-track"><i></i></div>
+        <ol class="checking-steps" id="checking-steps">
+          <li>Contacting Flagsmith</li>
+          <li>Auditing every case</li>
+          <li>Assembling the docket</li>
+        </ol>
+      </div>
     </div>
 
     <details class="raw">
@@ -156,6 +182,8 @@
     </div>
   </form>
 </dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script src="config.js"></script>
 <script src="app.js"></script>
