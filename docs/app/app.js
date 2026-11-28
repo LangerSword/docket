@@ -548,6 +548,7 @@
       showToast("Release signed. Download the record.");
     } catch (error) {
       state.busy = false;
+      setFlow("decide");
       if (error.status === 409 && error.detail && error.detail.docket) {
         state.docket = error.detail.docket;
         state.index = 0;
