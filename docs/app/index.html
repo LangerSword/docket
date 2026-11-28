@@ -95,6 +95,7 @@
       <p class="micro dark">Read-only preflight</p>
       <h2 id="preflight-title">Ready to read Flagsmith.</h2>
       <p class="preflight-copy" id="preflight-copy">No flags are written by this step. Review the target before Docket contacts it.</p>
+      <p class="preflight-error" id="preflight-error" role="alert"></p>
       <dl class="preflight-facts">
         <div><span>Target</span><b id="preflight-target">Not connected</b></div>
         <div><span>Environment</span><b id="preflight-env">Not set</b></div>
@@ -163,15 +164,15 @@
       <div><p class="micro dark">Live connection</p><h2 id="connect-title">Connect your Flagsmith.</h2></div>
       <button class="icon-button" type="button" id="close-connect" aria-label="Close">×</button>
     </div>
-    <p class="dialog-lede">No account. The token is sent to the Docket API for the request and is never stored. Use a dedicated token you can revoke.</p>
+    <p class="dialog-lede">No account. Base URL, environment key and admin token are required. The token is sent to the Docket API for the request and is never stored. Use a dedicated token you can revoke.</p>
     <div class="field-grid">
-      <label>Flagsmith base URL<input id="base-input" name="base" type="url" autocomplete="off" spellcheck="false" placeholder="https://flagsmith.example.com" required></label>
-      <label>Environment key<input id="environment-input" name="environment" type="text" autocomplete="off" spellcheck="false" placeholder="Environment SDK key" required></label>
-      <label>Admin API token<input id="token-input" name="token" type="password" autocomplete="new-password" spellcheck="false" placeholder="Token" required></label>
+      <label>Flagsmith base URL <span>required</span><input id="base-input" name="base" type="url" autocomplete="off" spellcheck="false" placeholder="https://flagsmith.example.com" required></label>
+      <label>Environment key <span>required</span><input id="environment-input" name="environment" type="text" autocomplete="off" spellcheck="false" placeholder="Environment SDK key" required></label>
+      <label>Admin API token <span>required</span><input id="token-input" name="token" type="password" autocomplete="new-password" spellcheck="false" placeholder="Token" required></label>
       <label>Events URL <span>(optional)</span><input id="events-input" type="url" autocomplete="off" spellcheck="false" placeholder="https://your-host/api/"></label>
-      <label>Signing key <span>(for ship)</span><input id="signing-input" name="signing_key" type="password" autocomplete="new-password" spellcheck="false" placeholder="Optional until you ship"></label>
+      <label>Signing key <span>for ship, never stored</span><input id="signing-input" name="signing_key" type="password" autocomplete="new-password" spellcheck="false" placeholder="Optional until you ship"></label>
     </div>
-    <label class="config-label">Release config <span>TOML</span><textarea id="config-input" name="config" rows="12" spellcheck="false" required></textarea></label>
+    <label class="config-label">Release config <span>authoritative TOML</span><textarea id="config-input" name="config" rows="12" spellcheck="false" required></textarea></label>
     <p class="dialog-error" id="connect-error" role="alert"></p>
     <div class="dialog-actions">
       <button class="button button-line" type="button" id="demo-button">Use demo instead</button>

@@ -13,6 +13,7 @@
     demoConfig: "",
     verifyText: "",
     recordNote: "",
+    preflightError: "",
     configTouched: false,
     flow: "decide",
     checkTimer: 0,
@@ -117,6 +118,16 @@
     return new Promise(function (resolve) { window.setTimeout(resolve, ms); });
   }
 
+  function errorMessage(error) {
+    if (!error) return "Docket could not complete the request.";
+    if (error.detail && Array.isArray(error.detail.details) && error.detail.details.length) {
+      return error.message + ": " + error.detail.details.map(function (item) {
+        return (item.field ? item.field + " " : "") + item.message;
+      }).join("; ");
+    }
+    return error.message || "Docket could not complete the request.";
+  }
+
   function renderPreflight() {
     var preflight = $("preflight");
     if (!preflight) return;
@@ -124,6 +135,7 @@
     preflight.hidden = !show;
     $("decision").classList.toggle("is-preflight", show);
     if (!show) return;
+    $("preflight-error").textContent = state.preflightError;
     $("preflight-target").textContent = state.live.base.replace(/^https?:\/\//, "");
     $("preflight-env").textContent = state.live.environment;
     var cases = (state.live.config.match(/\[\[experiment\]\]/g) || []).length;
@@ -446,6 +458,14 @@
       $("connect-error").textContent = "Base URL, environment key, token and release config are required.";
       return;
     }
+    if (!/^https?:\/\//i.test(base)) {
+      $("connect-error").textContent = "Base URL must start with https:// or http://.";
+      return;
+    }
+    if (!/\[\[experiment\]\]/.test(config) || !/\bid\s*=\s*\d+/.test(config)) {
+      $("connect-error").textContent = "Release config needs at least one [[experiment]] with an integer id.";
+      return;
+    }
     state.live = {
       base: base.replace(/\/+$/, ""),
       environment: environment,
@@ -459,6 +479,7 @@
     state.record = null;
     state.verifyText = "";
     state.recordNote = "";
+    state.preflightError = "";
     state.flow = "check";
     renderAll();
     connectClose();
@@ -474,6 +495,8 @@
     state.busy = true;
     state.record = null;
     state.verifyText = "";
+    state.preflightError = "";
+    if ($("preflight-error")) $("preflight-error").textContent = "";
     var preflight = $("preflight");
     if (preflight) preflight.hidden = true;
     $("decision").classList.remove("is-preflight");
@@ -507,10 +530,11 @@
       state.busy = false;
       setChecking(false);
       setFlow("connect");
+      state.preflightError = errorMessage(error);
       renderRail();
       renderPreflight();
-      setHelp(error.message, true);
-      showToast(error.message, true);
+      setHelp(errorMessage(error), true);
+      showToast(errorMessage(error), true);
     }
   }
 
@@ -609,7 +633,7 @@
         setHelp("Ship refused: the docket is not cleared.", true);
         showToast("Ship refused. The docket is not cleared.", true);
       } else {
-        $("confirm-error").textContent = error.message;
+        $("confirm-error").textContent = errorMessage(error);
         $("confirm-submit").disabled = false;
       }
     }
@@ -620,6 +644,7 @@
     state.mode = "demo";
     state.record = state.demo ? state.demo.record : null;
     state.recordNote = "Cleared one-case release, not the blocked release above.";
+    state.preflightError = "";
     state.docket = state.demo ? state.demo.release : null;
     state.index = 0;
     state.verifyText = "";
