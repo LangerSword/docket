@@ -13,6 +13,7 @@
     demoConfig: "",
     verifyText: "",
     recordNote: "",
+    configTouched: false,
     flow: "decide",
     checkTimer: 0,
     toastTimer: 0
@@ -92,10 +93,12 @@
     if (!active) {
       layer.hidden = true;
       $("decision").setAttribute("aria-busy", "false");
+      $("decision").classList.remove("is-checking");
       return;
     }
     layer.hidden = false;
     $("decision").setAttribute("aria-busy", "true");
+    $("decision").classList.add("is-checking");
     $("checking-title").textContent = title || "Reading the release";
     var steps = Array.prototype.slice.call(document.querySelectorAll("#checking-steps li"));
     steps.forEach(function (item, index) {
@@ -112,6 +115,25 @@
 
   function wait(ms) {
     return new Promise(function (resolve) { window.setTimeout(resolve, ms); });
+  }
+
+  function renderPreflight() {
+    var preflight = $("preflight");
+    if (!preflight) return;
+    var show = state.mode === "live" && Boolean(state.live) && !state.docket;
+    preflight.hidden = !show;
+    $("decision").classList.toggle("is-preflight", show);
+    if (!show) return;
+    $("preflight-target").textContent = state.live.base.replace(/^https?:\/\//, "");
+    $("preflight-env").textContent = state.live.environment;
+    var cases = (state.live.config.match(/\[\[experiment\]\]/g) || []).length;
+    $("preflight-cases").textContent = String(cases);
+  }
+
+  function updateConfirm() {
+    var check = $("confirm-check");
+    var input = $("confirm-input");
+    $("confirm-submit").disabled = !(check && check.checked && input && input.value.trim() === "SHIP");
   }
 
   function currentCase() {
@@ -186,7 +208,7 @@
     } else {
       ship.title = "Ship the cleared release.";
     }
-    $("run-button").textContent = state.busy ? "Checking..." : state.mode === "demo" ? "Replay recorded check" : "Run check";
+    $("run-button").textContent = state.busy ? "Checking..." : state.mode === "demo" ? "Replay recorded check" : (!release ? "Review preflight" : "Run check");
     $("run-button").disabled = state.busy;
     $("mode-copy").textContent = state.mode === "demo" ? "Recorded demo" : "Live Flagsmith";
     $("source-copy").textContent = state.mode === "demo"
@@ -233,7 +255,7 @@
     var reasons = (verdict && verdict.reasons) || [];
     if (!reasons.length) reasons = ["Flagsmith did not return a decision."];
     $("case-reasons").innerHTML = reasons.map(function (reason) {
-      return "<p>" + esc(reason) + "</p>";
+      return "<p>" + esc(String(reason).replace(/^red:/, "Leading variant red:")) + "</p>";
     }).join("");
 
     var arms = (verdict && verdict.arms) || {};
@@ -296,6 +318,7 @@
     renderDecision();
     renderRecord();
     renderFlow();
+    renderPreflight();
   }
 
   function downloadRecord() {
@@ -357,6 +380,11 @@
   }
 
   async function loadDemo() {
+    setChecking(true, "Opening the recorded file", [
+      "Locating the docket",
+      "Loading case evidence",
+      "Restoring the record"
+    ]);
     try {
       var response = await fetch("./demo.json", { cache: "no-store" });
       if (!response.ok) throw new Error("demo snapshot returned " + response.status);
@@ -367,16 +395,19 @@
       state.mode = "demo";
       state.index = 0;
       state.flow = "decide";
+      await wait(650);
+      setChecking(false);
       renderAll();
       setHelp("Recorded file loaded. Press replay to inspect the decision.");
     } catch (error) {
+      setChecking(false);
       setHelp("Could not load the demo snapshot. " + error.message, true);
     }
     try {
       var config = await fetch("./demo.toml", { cache: "no-store" });
       if (config.ok) {
         state.demoConfig = await config.text();
-        $("config-input").value = state.demoConfig;
+        if (!state.configTouched && !$("config-input").value) $("config-input").value = state.demoConfig;
         var base = state.demoConfig.match(/base\s*=\s*"([^"]+)"/);
         var env = state.demoConfig.match(/environment\s*=\s*"([^"]+)"/);
         if (base) $("base-input").value = base[1];
@@ -408,6 +439,7 @@
     var environment = $("environment-input").value.trim();
     var token = $("token-input").value;
     var config = $("config-input").value;
+    state.configTouched = true;
     var signingKey = $("signing-input").value;
     var events = $("events-input").value.trim();
     if (!base || !environment || !token || !config) {
@@ -430,8 +462,8 @@
     state.flow = "check";
     renderAll();
     connectClose();
-    setHelp("Connected. Running a live check...");
-    liveCheck();
+    setHelp("Connection saved. Review the read-only preflight, then run the check.");
+    window.setTimeout(function () { var button = $("preflight-run"); if (button) button.focus(); }, 40);
   }
 
   async function liveCheck() {
@@ -442,6 +474,9 @@
     state.busy = true;
     state.record = null;
     state.verifyText = "";
+    var preflight = $("preflight");
+    if (preflight) preflight.hidden = true;
+    $("decision").classList.remove("is-preflight");
     setFlow("check");
     setChecking(true, "Reading the release", [
       "Contacting Flagsmith",
@@ -473,12 +508,20 @@
       setChecking(false);
       setFlow("connect");
       renderRail();
+      renderPreflight();
       setHelp(error.message, true);
       showToast(error.message, true);
     }
   }
 
   function run() {
+    if (state.mode === "live" && !state.docket) {
+      renderPreflight();
+      var preflightButton = $("preflight-run");
+      if (preflightButton) preflightButton.focus();
+      setHelp("Review the read-only preflight before Docket contacts your instance.");
+      return;
+    }
     if (state.mode === "demo") {
       state.busy = true;
       setFlow("check");
@@ -508,6 +551,11 @@
   function shipOpen() {
     if (state.mode !== "live" || !state.docket || state.docket.state !== "cleared") return;
     $("confirm-input").value = "";
+    $("confirm-check").checked = false;
+    var cases = (state.docket.cases || []).length;
+    var winners = (state.docket.cases || []).filter(function (item) { return item.state === "winner"; }).length;
+    $("confirm-summary").innerHTML = "<b>" + esc(state.docket.release) + "</b><br>" + esc(cases) + " experiment(s) / " + esc(winners) + " winner(s) / writes each winner to 100%.";
+    updateConfirm();
     $("confirm-error").textContent = "";
     $("confirm-submit").disabled = true;
     if (typeof $("confirm-dialog").showModal === "function") $("confirm-dialog").showModal();
@@ -524,6 +572,10 @@
     if (!state.live || !state.docket) return;
     $("confirm-submit").disabled = true;
     $("confirm-error").textContent = "";
+    if (!$("confirm-check").checked || $("confirm-input").value.trim() !== "SHIP") {
+      $("confirm-error").textContent = "Tick the confirmation and type SHIP.";
+      return;
+    }
     state.busy = true;
     setFlow("ship");
     try {
@@ -588,9 +640,10 @@
     $("forget-button").addEventListener("click", forget);
     $("close-confirm").addEventListener("click", confirmClose);
     $("cancel-confirm").addEventListener("click", confirmClose);
-    $("confirm-input").addEventListener("input", function () {
-      $("confirm-submit").disabled = $("confirm-input").value.trim() !== "SHIP";
-    });
+    $("confirm-input").addEventListener("input", updateConfirm);
+    $("confirm-check").addEventListener("change", updateConfirm);
+    $("preflight-run").addEventListener("click", function () { liveCheck(); });
+    $("config-input").addEventListener("input", function () { state.configTouched = true; });
     $("confirm-form").addEventListener("submit", shipSubmit);
   }
 

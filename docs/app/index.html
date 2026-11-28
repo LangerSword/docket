@@ -23,7 +23,7 @@
   <span class="top-label">Console</span>
   <span class="mode-badge" id="mode-badge">Demo</span>
   <div class="top-actions">
-    <button class="top-button" id="connect-button" type="button">Connect Flagsmith</button>
+    <button class="top-button" id="connect-button" type="button"><span class="connect-long">Connect Flagsmith</span><span class="connect-short">Connect</span></button>
     <a class="top-link" href="../docs/">Docs</a>
     <a class="top-link" href="../">Site <span aria-hidden="true">↗</span></a>
   </div>
@@ -89,6 +89,19 @@
     <div class="case-checks">
       <div class="checks-head"><p class="micro dark">Audit</p><span id="checks-summary">11 pass</span></div>
       <div id="check-list"></div>
+    </div>
+
+    <div class="preflight" id="preflight" hidden>
+      <p class="micro dark">Read-only preflight</p>
+      <h2 id="preflight-title">Ready to read Flagsmith.</h2>
+      <p class="preflight-copy" id="preflight-copy">No flags are written by this step. Review the target before Docket contacts it.</p>
+      <dl class="preflight-facts">
+        <div><span>Target</span><b id="preflight-target">Not connected</b></div>
+        <div><span>Environment</span><b id="preflight-env">Not set</b></div>
+        <div><span>Cases</span><b id="preflight-cases">0</b></div>
+        <div><span>Mode</span><b>Read only</b></div>
+      </dl>
+      <button class="button button-paper" id="preflight-run" type="button">Run read-only check</button>
     </div>
 
     <div class="checking" id="checking" hidden aria-live="polite">
@@ -173,8 +186,10 @@
       <div><p class="micro dark">Irreversible flag change</p><h2 id="confirm-title">Ship this release?</h2></div>
       <button class="icon-button" type="button" id="close-confirm" aria-label="Close">×</button>
     </div>
-    <p class="dialog-lede">Docket will complete every experiment in the docket and write each winner to 100%. Type <strong>SHIP</strong> to confirm.</p>
-    <label>Confirmation<input id="confirm-input" type="text" autocomplete="off" spellcheck="false" placeholder="SHIP"></label>
+    <p class="dialog-lede">Docket will complete every experiment in the docket and write each winner to 100%.</p>
+    <div class="confirm-summary" id="confirm-summary"></div>
+    <label class="confirm-check"><input id="confirm-check" type="checkbox"> I understand this writes flags to the release.</label>
+    <label>Confirmation<input id="confirm-input" type="text" autocomplete="off" spellcheck="false" placeholder="Type SHIP"></label>
     <p class="dialog-error" id="confirm-error" role="alert"></p>
     <div class="dialog-actions">
       <button class="button button-line" type="button" id="cancel-confirm">Cancel</button>

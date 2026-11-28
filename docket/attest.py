@@ -15,8 +15,30 @@ SIGNATURE_FIELD = "signature"
 ALGORITHM = "hmac-sha256"
 
 
-def canonical_bytes(body: dict[str, Any]) -> bytes:
-    return json.dumps(body, sort_keys=True, separators=(",", ":"),
+def _normalise(value: Any) -> Any:
+    """Make numbers survive a JSON round trip through another runtime.
+
+    Python writes integral floats as ``179.0`` while JavaScript writes ``179``.
+    A record signed before transport would then fail verification after the
+    browser parsed and re-serialised it. Normalise integral floats to ints and
+    other floats to 12 decimal places before hashing.
+    """
+    if isinstance(value, float):
+        if value.is_integer():
+            return int(value)
+        return round(value, 12)
+    if isinstance(value, dict):
+        return {key: _normalise(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_normalise(item) for item in value]
+    if isinstance(value, tuple):
+        return [_normalise(item) for item in value]
+    return value
+
+
+def canonical_bytes(body: dict[str, Any], legacy: bool = False) -> bytes:
+    payload = body if legacy else _normalise(body)
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"),
                       ensure_ascii=False).encode("utf-8")
 
 
@@ -53,5 +75,9 @@ def verify_record(record: dict[str, Any], key: str) -> tuple[bool, str]:
     expected = hmac.new(key.encode("utf-8"), canonical_bytes(body),
                         hashlib.sha256).hexdigest()
     if not hmac.compare_digest(str(signature.get("value", "")), expected):
-        return False, "signature does not match the record; it was edited after signing"
+        # Records signed before numeric normalisation still verify unchanged.
+        legacy = hmac.new(key.encode("utf-8"), canonical_bytes(body, legacy=True),
+                          hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(str(signature.get("value", "")), legacy):
+            return False, "signature does not match the record; it was edited after signing"
     return True, f"valid {ALGORITHM} signature, key {expected_key_id}"

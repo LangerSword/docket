@@ -31,6 +31,22 @@ class AttestTest(unittest.TestCase):
         self.assertTrue(ok, message)
         self.assertEqual(signed["signature"]["alg"], "hmac-sha256")
 
+    def test_signed_record_survives_json_round_trip(self):
+        signed = sign_record({"tool": "docket", "n": 179.0, "lift": 1.7970098643649812}, KEY)
+        round_tripped = json.loads(json.dumps(signed))
+        ok, message = verify_record(round_tripped, KEY)
+        self.assertTrue(ok, message)
+
+    def test_legacy_record_still_verifies(self):
+        signed = sign_record({"tool": "docket", "n": 179.0}, KEY)
+        # Simulate a record signed before numeric normalisation.
+        body = {k: v for k, v in signed.items() if k != "signature"}
+        import hashlib, hmac
+        legacy = hmac.new(KEY.encode(), json.dumps(body, sort_keys=True, separators=(",", ":")).encode(), hashlib.sha256).hexdigest()
+        signed["signature"]["value"] = legacy
+        ok, message = verify_record(signed, KEY)
+        self.assertTrue(ok, message)
+
     def test_signing_does_not_mutate_the_input(self):
         sign_record(RECORD, KEY)
         self.assertNotIn("signature", RECORD)

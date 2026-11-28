@@ -225,7 +225,7 @@ code, pre { font-family: var(--mono); }
 .cover-grid {
   width: min(calc(100% - (var(--gutter) * 2)), var(--max));
   margin-inline: auto;
-  min-height: calc(100svh - 132px);
+  min-height: calc(100svh - 220px);
   display: grid;
   grid-template-columns: minmax(0, 1.04fr) minmax(0, .96fr);
   gap: clamp(20px, 3vw, 54px);
@@ -240,7 +240,7 @@ code, pre { font-family: var(--mono); }
   text-transform: uppercase;
   font-weight: 400;
   color: var(--paper);
-  margin: 18px 0 22px;
+  margin: 18px 0 32px;
   white-space: nowrap;
   position: relative;
   z-index: 2;
@@ -1060,18 +1060,19 @@ code, pre { font-family: var(--mono); }
 @media (max-width: 560px) { :root { --ppi: .94; } }
 
 body { font-size: calc(18px * var(--ppi)); }
-.micro { font-size: calc(9px * var(--ppi)); }
+.micro { font-size: calc(11px * var(--ppi)); }
 .refused { font-size: clamp(calc(80px * var(--ppi)), 15vw, calc(240px * var(--ppi))); }
 .cover-line { font-size: calc(clamp(25px, 2.3vw, 34px) * var(--ppi)); }
 .cover-lede { font-size: calc(17px * var(--ppi)); }
 .file-name { font-size: calc(clamp(26px, 2.8vw, 37px) * var(--ppi)); }
 .file-row .row-name { font-size: calc(22px * var(--ppi)); }
-.row-note, .row-id, .row-state { font-size: calc(9.2px * var(--ppi)); }
-.file-foot { font-size: calc(8.5px * var(--ppi)); }
-.cover-rail { font-size: calc(8.5px * var(--ppi)); min-height: calc(44px * var(--ppi)); }
+.row-note, .row-id, .row-state { font-size: calc(11px * var(--ppi)); }
+.row-note, .row-id, .row-state { font-size: calc(10.2px * var(--ppi)); }
+.file-foot { font-size: calc(10px * var(--ppi)); }
+.cover-rail { font-size: calc(10.5px * var(--ppi)); min-height: calc(44px * var(--ppi)); }
 .panel-big { font-size: calc(clamp(4.4rem, 12vw, 11.5rem) * var(--ppi)); }
 .panel-line { font-size: calc(18px * var(--ppi)); }
-.panel-link, .panel-state { font-size: calc(9px * var(--ppi)); }
+.panel-link, .panel-state { font-size: calc(10px * var(--ppi)); }
 .paper-rows dd { font-size: calc(13px * var(--ppi)); }
 .record-intro h2 { font-size: calc(clamp(36px, 5.3vw, 72px) * var(--ppi)); }
 .record-intro > p:last-child { font-size: calc(17px * var(--ppi)); }
@@ -1113,3 +1114,7 @@ body { font-size: calc(18px * var(--ppi)); }
 @media (prefers-reduced-motion: reduce) {
   .cover-rail::after { animation: none; }
 }
+
+.file-id, .site-nav a, .mast-link { font-size: calc(10px * var(--ppi)); }
+.file-note { font-size: calc(10.5px * var(--ppi)); }
+.paper-kicker, .file-date { font-size: calc(10.5px * var(--ppi)); }
