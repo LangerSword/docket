@@ -422,8 +422,8 @@
         if (!state.configTouched && !$("config-input").value) $("config-input").value = state.demoConfig;
         var base = state.demoConfig.match(/base\s*=\s*"([^"]+)"/);
         var env = state.demoConfig.match(/environment\s*=\s*"([^"]+)"/);
-        if (base) $("base-input").value = base[1];
-        if (env) $("environment-input").value = env[1];
+        if (base && !$("base-input").value) $("base-input").value = base[1];
+        if (env && !$("environment-input").value) $("environment-input").value = env[1];
       }
     } catch (error) {
       /* the form still works with a pasted config */
